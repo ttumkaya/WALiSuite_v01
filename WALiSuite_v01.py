@@ -766,7 +766,7 @@ def RPI(df, rootDir, combineControls=False, dropNans=False):
     return df
 
 
-# ## Metric: Number of Border Crossing
+# ## Metric: Number of Border Crossings
 
 # In[167]:
 
@@ -832,16 +832,245 @@ def NoBC(df, rootDir, combineControls=False, dropNans=False):
     plotTheMetric(df,'NoBC',rootDir,combineControls,dropNans)
 
     return df
-        
 
+
+# ## Metric: Speed ratio
+
+# In[291]:
+
+
+### NTS: convert HeadX to SMOOTHED HEADX
+
+## 1. detect the chunks of headX that were in the epoch regions for before_the_light_P01, during_the_light_P01..
+## 2. calculate total distance travelled and total number of frames
+## 3. convert them into mm and sec
+## 4. calculate the ratio
+
+def calculateSpeed(data, fps, mmPerPixel):
+    number_of_frames = 0
+    total_distance_pixel = 0
+    
+    for sublist in data:
+        for distance in sublist:
+            total_distance_pixel = total_distance_pixel + distance
+            number_of_frames = number_of_frames + 1
+    
+    total_time_sec = float(number_of_frames) / float(fps)
+    total_distance_mm = total_distance_pixel * mmPerPixel
+    
+    speed_pix_per_frame = float(total_distance_pixel)/float(number_of_frames)
+    speed_mm_per_sec = float(total_distance_mm)/float(total_time_sec)
+    return speed_mm_per_sec
+
+list_of_speed_ratio_P01 = []
+list_of_speed_ratio_P10 = []
+
+
+
+for fly in range(len(df)):
+    
+    ## get the light ON indices to detect before and during light episodes in an experiment
+    lightON_P01 = df['LightON index|P01'][fly]
+    lightON_P10 = df['LightON index|P10'][fly] 
+    
+    ## get the borders
+    border_P01 = df['Border|P01'][fly]
+    border_P10 = df['Border|P01'][fly]
+    
+    ## get fps and mmPerPixel for speed calculation
+    fps = df['fps'][fly]
+    mmPerPixel = df['mmPerPix'][fly]
+    ## get the fly's headX for the entire exp
+    fly_headX_coords = df['HeadX(pix)'][fly]
+    
+    ##  chop up the headX into the episodes
+    before_the_light_P01_headX = fly_headX_coords[:lightON_P01[0]]
+    during_the_light_P01_headX = fly_headX_coords[lightON_P01[0]:lightON_P01[1]]
+    
+    before_the_light_P10_headX = fly_headX_coords[lightON_P01[1]:lightON_P10[0]]
+    during_the_light_P10_headX = fly_headX_coords[lightON_P10[0]:lightON_P10[1]]
+    
+    ## lists to keep the chunks (lists) of headX there were in the region that the light was going to be turned ON
+    before_the_light_P01_headX_in_the_region = []
+    during_the_light_P01_headX_in_the_region = []
+    
+    before_the_light_P10_headX_in_the_region = []
+    during_the_light_P10_headX_in_the_region = []
+    
+    ## keep the indices of headX where they are in the region of interest
+    ## for P01
+    before_the_light_P01_headX_temp = []
+    for i in range(len(before_the_light_P01_headX)):
+        if before_the_light_P01_headX[i] > border_P01:
+            before_the_light_P01_headX_temp.append(i)
+    
+    during_the_light_P01_headX_temp = []
+    for i in range(len(during_the_light_P01_headX)):
+        if during_the_light_P01_headX[i] > border_P01:
+            during_the_light_P01_headX_temp.append(i)
+       
+    ## for P10
+    before_the_light_P10_headX_temp = []
+    for i in range(len(before_the_light_P10_headX)):
+        if before_the_light_P10_headX[i] < border_P10:
+            before_the_light_P10_headX_temp.append(i)
+            
+    during_the_light_P10_headX_temp = []
+    for i in range(len(during_the_light_P10_headX)):
+        if during_the_light_P10_headX[i] < border_P10:
+            during_the_light_P10_headX_temp.append(i)
+    
+    ## chop up the indices' lists and find consecutives
+    for k, g in groupby(enumerate(before_the_light_P01_headX_temp), lambda (i,x):i-x):
+        sublist = map(itemgetter(1), g)
+        if len(sublist) > 1:
+            before_the_light_P01_headX_in_the_region.append(sublist)
+            
+    for k, g in groupby(enumerate(during_the_light_P01_headX_temp), lambda (i,x):i-x):
+        sublist = map(itemgetter(1), g)
+        if len(sublist) > 1:
+            during_the_light_P01_headX_in_the_region.append(sublist)
+            
+    for k, g in groupby(enumerate(before_the_light_P10_headX_temp), lambda (i,x):i-x):
+        sublist = map(itemgetter(1), g)
+        if len(sublist) > 1:
+            before_the_light_P10_headX_in_the_region.append(sublist)
+            
+    for k, g in groupby(enumerate(during_the_light_P10_headX_temp), lambda (i,x):i-x):
+        sublist = map(itemgetter(1), g)
+        if len(sublist) > 1:
+            during_the_light_P10_headX_in_the_region.append(sublist)
+
+    ## By using the index lists, create distance travelled lists of lists.
+    ## For P01
+    before_the_light_P01_headX_in_the_region_distance_travelled = []
+    
+    for l in before_the_light_P01_headX_in_the_region:
+        start_idx = l[0]
+        end_idx = l[-1]
+        temp = []
+        
+        for i in range(start_idx,end_idx):
+            diff = abs(before_the_light_P01_headX[i+1] - before_the_light_P01_headX[i])
+            temp.append(diff)
+        before_the_light_P01_headX_in_the_region_distance_travelled.append(temp)
+    
+    during_the_light_P01_headX_in_the_region_distance_travelled = []
+    
+    for l in during_the_light_P01_headX_in_the_region:
+        start_idx = l[0]
+        end_idx = l[-1]
+        temp = []
+        
+        for i in range(start_idx,end_idx):
+            diff = abs(during_the_light_P01_headX[i+1] - during_the_light_P01_headX[i])
+            temp.append(diff)
+        during_the_light_P01_headX_in_the_region_distance_travelled.append(temp)
+        
+    ## for P10
+    before_the_light_P10_headX_in_the_region_distance_travelled = []
+    
+    for l in before_the_light_P10_headX_in_the_region:
+        start_idx = l[0]
+        end_idx = l[-1]
+        temp = []
+        
+        for i in range(start_idx,end_idx):
+            diff = abs(before_the_light_P10_headX[i+1] - before_the_light_P10_headX[i])
+            temp.append(diff)
+        before_the_light_P10_headX_in_the_region_distance_travelled.append(temp)
+    
+    during_the_light_P10_headX_in_the_region_distance_travelled = []
+    
+    for l in during_the_light_P10_headX_in_the_region:
+        start_idx = l[0]
+        end_idx = l[-1]
+        temp = []
+        
+        for i in range(start_idx,end_idx):
+            diff = abs(during_the_light_P10_headX[i+1] - during_the_light_P10_headX[i])
+            temp.append(diff)
+        during_the_light_P10_headX_in_the_region_distance_travelled.append(temp)
+    
+    
+    ## Send the distance travelled lists to the calculateSpeed function to get an average speed (mm/sec)    
+    speed_before_the_light_P01_headX_in_the_region = calculateSpeed(before_the_light_P01_headX_in_the_region_distance_travelled, fps, mmPerPixel)
+    speed_during_the_light_P01_headX_in_the_region = calculateSpeed(during_the_light_P01_headX_in_the_region_distance_travelled, fps, mmPerPixel)
+    speed_before_the_light_P10_headX_in_the_region = calculateSpeed(before_the_light_P10_headX_in_the_region_distance_travelled, fps, mmPerPixel)
+    speed_during_the_light_P10_headX_in_the_region = calculateSpeed(during_the_light_P10_headX_in_the_region_distance_travelled, fps, mmPerPixel)
+
+    speed_ratio_P01 = speed_during_the_light_P01_headX_in_the_region / speed_before_the_light_P01_headX_in_the_region
+    speed_ratio_P10 = speed_during_the_light_P10_headX_in_the_region / speed_before_the_light_P10_headX_in_the_region
+    
+    print speed_before_the_light_P01_headX_in_the_region, speed_during_the_light_P01_headX_in_the_region
+    print speed_before_the_light_P10_headX_in_the_region, speed_during_the_light_P10_headX_in_the_region
+    break
+
+
+
+# In[276]:
+
+
+1.5940418512 * 0.365 * 16
+
+
+# In[269]:
+
+
+c = 0
+for i in before_the_light_P01_headX_in_the_region_distance_travelled:
+    for j in i:
+        c = c+1
+        
+print c
+
+
+# In[271]:
+
+
+df['fps']
+
+
+# In[226]:
+
+
+a = [1,2,3,4,9,10,11,22,44,88,100,111,23,44,55]
+
+
+# In[246]:
+
+
+temp = []
+
+for i in range(len(a)-1):
+    if (9 < a[i]) & (a[i] < 60):
+        temp.append(i)
+temp
+
+
+# In[249]:
+
+
+for k, g in groupby(enumerate(temp), lambda (i,x):i-x):
+    lists = map(itemgetter(1), g)
+    if len(lists) > 1:
+        print lists
+    
+
+
+# ## Metric Queue
+# 
+# ### Speed ratio (mm/sec) (Speed in the P01 region during Dark / Speed in the P01 region during Light)
+# ### (Time spent in P01 during the light - Time spent in P01 before the light) / Time spent in P01 before the light
+# ### Acute change (or acceleration??) in the speed in the first 3 secs after entering / leaving the light zone
 
 # ## Track Visualization
 
-# In[151]:
+# In[288]:
 
 
 ## Plot a single fly's trajectory as well as first light contacts.
-def VisualizeSingleFlyTrajectory(df,flyiLoc,mark =False, smoothHeadX = False):
+def VisualizeSingleFlyTrajectory(df,flyiLoc,mark =False, smoothHeadX = False, speed= False):
     singleFlyData = df.iloc[flyiLoc,:]
 
     ## Get the data for the selected fly
@@ -853,7 +1082,6 @@ def VisualizeSingleFlyTrajectory(df,flyiLoc,mark =False, smoothHeadX = False):
     elif (smoothHeadX == True):
         headXData = singleFlyData['HeadX(pix)_smoothed']
     
-
     ## If no contact with light, assign 0
     firstLightContact_P01 = int(singleFlyData['First light contact index_of_the_whole_data|P01']) if math.isnan(singleFlyData['First light contact index_of_the_whole_data|P01']) == False else 0
     firstLightContact_P10 = int(singleFlyData['First light contact index_of_the_whole_data|P10']) if math.isnan(singleFlyData['First light contact index_of_the_whole_data|P10']) == False else 0
@@ -866,42 +1094,52 @@ def VisualizeSingleFlyTrajectory(df,flyiLoc,mark =False, smoothHeadX = False):
     fig = plt.figure(figsize=(15,15))
     ax1 = plt.subplot(111)
 
-    ax1.plot(range(len(headXData)), headXData, color='black')
+    if speed == True:
+        speed = np.diff(headXData)
+        ax1.plot(range(len(speed)), speed, color='black')
+        
+        normalized_border_P01 = border_P01/145.0
+        normalized_border_P10 = border_P10/145.0
+        
+        ax1.axvspan(lightON_P01, lightOFF_P01, ymin = normalized_border_P01, ymax = 1, color='red', alpha=0.3)
+        ax1.axvspan(lightON_P10, lightOFF_P10, ymin = 0, ymax = normalized_border_P10, color='red', alpha=0.3)
+    else:
+        ax1.plot(range(len(headXData)), headXData, color='black')
 
-    ## Normalize borders to a range between 0-1 for the axvspan function
-    normalized_border_P01 = border_P01/145.0
-    normalized_border_P10 = border_P10/145.0
+        ## Normalize borders to a range between 0-1 for the axvspan function
+        normalized_border_P01 = border_P01/145.0
+        normalized_border_P10 = border_P10/145.0
 
-    ax1.axvspan(lightON_P01, lightOFF_P01, ymin = normalized_border_P01, ymax = 1, color='red', alpha=0.3)
-    ax1.axvspan(lightON_P10, lightOFF_P10, ymin = 0, ymax = normalized_border_P10, color='red', alpha=0.3)
-    if firstLightContact_P01 != 0:
-        ax1.annotate('first' +'\n'+ 'contact', xy=(firstLightContact_P01, headXData[firstLightContact_P01]), 
-                 xytext=(firstLightContact_P01,headXData[firstLightContact_P01]), arrowprops=dict(facecolor='blue', shrink=0.05))
+        ax1.axvspan(lightON_P01, lightOFF_P01, ymin = normalized_border_P01, ymax = 1, color='red', alpha=0.3)
+        ax1.axvspan(lightON_P10, lightOFF_P10, ymin = 0, ymax = normalized_border_P10, color='red', alpha=0.3)
+        if firstLightContact_P01 != 0:
+            ax1.annotate('first' +'\n'+ 'contact', xy=(firstLightContact_P01, headXData[firstLightContact_P01]), 
+                     xytext=(firstLightContact_P01,headXData[firstLightContact_P01]), arrowprops=dict(facecolor='blue', shrink=0.05))
 
-    if firstLightContact_P10 != 0:
-        ax1.annotate('first' +'\n'+ 'contact', xy=(firstLightContact_P10, headXData[firstLightContact_P10]), 
-                 xytext=(firstLightContact_P10,headXData[firstLightContact_P10]), arrowprops=dict(facecolor='blue', shrink=0.05))
-    
-    ax1.axhline(y=ChoiceZoneBorders_P01[0],xmin=.195,xmax=.42,color='red')        
-    ax1.axhline(y=ChoiceZoneBorders_P01[1],xmin=.195,xmax=.42,color='red')
-    ax1.axhline(y=ChoiceZoneBorders_P10[0],xmin=.575,xmax=.80,color='red')        
-    ax1.axhline(y=ChoiceZoneBorders_P10[1],xmin=.575,xmax=.80,color='red')
-    
-    if mark != False:
-        ax1.axvline(mark, color = 'blue')
-    ax1.set_ylim(0,146)
-    ax1.set_ylabel('HeadX (pix)')
-    ax1.set_xlabel('Time frames')
-    sns.set(style="ticks", palette="bright", color_codes=True)
-    sns.despine()
+        if firstLightContact_P10 != 0:
+            ax1.annotate('first' +'\n'+ 'contact', xy=(firstLightContact_P10, headXData[firstLightContact_P10]), 
+                     xytext=(firstLightContact_P10,headXData[firstLightContact_P10]), arrowprops=dict(facecolor='blue', shrink=0.05))
+
+        ax1.axhline(y=ChoiceZoneBorders_P01[0],xmin=.195,xmax=.42,color='red')        
+        ax1.axhline(y=ChoiceZoneBorders_P01[1],xmin=.195,xmax=.42,color='red')
+        ax1.axhline(y=ChoiceZoneBorders_P10[0],xmin=.575,xmax=.80,color='red')        
+        ax1.axhline(y=ChoiceZoneBorders_P10[1],xmin=.575,xmax=.80,color='red')
+
+        if mark != False:
+            ax1.axvline(mark, color = 'blue')
+        ax1.set_ylim(0,146)
+        ax1.set_ylabel('HeadX (pix)')
+        ax1.set_xlabel('Time frames')
+        sns.set(style="ticks", palette="bright", color_codes=True)
+        sns.despine()
     return None
 
 
-# In[155]:
+# In[289]:
 
 
-flyiLoc = 1
-VisualizeSingleFlyTrajectory(dd, flyiLoc=flyiLoc,mark = 2473, smoothHeadX=False)
+flyiLoc = 0
+VisualizeSingleFlyTrajectory(dd, flyiLoc=flyiLoc,mark = 2473, smoothHeadX=False,speed=True)
 # plt.savefig('ContactedLight_bothHalves.pdf',dpi=1000,bbox_inches='tight')
 # plt.show()
 
