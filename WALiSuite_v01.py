@@ -836,7 +836,7 @@ def NoBC(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Speed ratio
 
-# In[291]:
+# In[345]:
 
 
 ### NTS: convert HeadX to SMOOTHED HEADX
@@ -847,226 +847,283 @@ def NoBC(df, rootDir, combineControls=False, dropNans=False):
 ## 4. calculate the ratio
 
 def calculateSpeed(data, fps, mmPerPixel):
+    
     number_of_frames = 0
     total_distance_pixel = 0
     
+    ## Go thru the chunks of contuniued headX coordinates
     for sublist in data:
         for distance in sublist:
             total_distance_pixel = total_distance_pixel + distance
             number_of_frames = number_of_frames + 1
     
-    total_time_sec = float(number_of_frames) / float(fps)
-    total_distance_mm = total_distance_pixel * mmPerPixel
-    
-    speed_pix_per_frame = float(total_distance_pixel)/float(number_of_frames)
-    speed_mm_per_sec = float(total_distance_mm)/float(total_time_sec)
+    if (number_of_frames != 0) & (total_distance_pixel != 0):
+        total_time_sec = float(number_of_frames) / float(fps)
+        total_distance_mm = total_distance_pixel * mmPerPixel
+
+        speed_pix_per_frame = float(total_distance_pixel)/float(number_of_frames)
+        speed_mm_per_sec = float(total_distance_mm)/float(total_time_sec)
+
+    else:
+        speed_pix_per_frame = np.nan
+        speed_mm_per_sec = np.nan
+        
     return speed_mm_per_sec
 
-list_of_speed_ratio_P01 = []
-list_of_speed_ratio_P10 = []
+def Log2SpeedRation(df ,rootDir, combineControls=False, dropNans=False):
+    list_of_log2_speed_ratio_P01 = []
+    list_of_log2_speed_ratio_P10 = []
 
-
-
-for fly in range(len(df)):
+    for fly in range(len(df)):
     
-    ## get the light ON indices to detect before and during light episodes in an experiment
-    lightON_P01 = df['LightON index|P01'][fly]
-    lightON_P10 = df['LightON index|P10'][fly] 
+        ## get the light ON indices to detect before and during light episodes in an experiment
+        lightON_P01 = df['LightON index|P01'][fly]
+        lightON_P10 = df['LightON index|P10'][fly] 
+
+        ## get the borders
+        border_P01 = df['Border|P01'][fly]
+        border_P10 = df['Border|P01'][fly]
+
+        ## get fps and mmPerPixel for speed calculation
+        fps = df['fps'][fly]
+        mmPerPixel = df['mmPerPix'][fly]
+        ## get the fly's headX for the entire exp
+        fly_headX_coords = df['HeadX(pix)'][fly]
+
+        ##  chop up the headX into the episodes
+        before_the_light_P01_headX = fly_headX_coords[:lightON_P01[0]]
+        during_the_light_P01_headX = fly_headX_coords[lightON_P01[0]:lightON_P01[1]]
+
+        before_the_light_P10_headX = fly_headX_coords[lightON_P01[1]:lightON_P10[0]]
+        during_the_light_P10_headX = fly_headX_coords[lightON_P10[0]:lightON_P10[1]]
+
+        ## lists to keep the chunks (lists) of headX there were in the region that the light was going to be turned ON
+        before_the_light_P01_headX_in_the_region = []
+        during_the_light_P01_headX_in_the_region = []
+
+        before_the_light_P10_headX_in_the_region = []
+        during_the_light_P10_headX_in_the_region = []
+
+        ## keep the indices of headX where they are in the region of interest
+        ## for P01
+        before_the_light_P01_headX_temp = []
+        for i in range(len(before_the_light_P01_headX)):
+            if before_the_light_P01_headX[i] > border_P01:
+                before_the_light_P01_headX_temp.append(i)
+
+        during_the_light_P01_headX_temp = []
+        for i in range(len(during_the_light_P01_headX)):
+            if during_the_light_P01_headX[i] > border_P01:
+                during_the_light_P01_headX_temp.append(i)
+
+        ## for P10
+        before_the_light_P10_headX_temp = []
+        for i in range(len(before_the_light_P10_headX)):
+            if before_the_light_P10_headX[i] < border_P10:
+                before_the_light_P10_headX_temp.append(i)
+
+        during_the_light_P10_headX_temp = []
+        for i in range(len(during_the_light_P10_headX)):
+            if during_the_light_P10_headX[i] < border_P10:
+                during_the_light_P10_headX_temp.append(i)
+
+        ## chop up the indices' lists and find consecutives
+        for k, g in groupby(enumerate(before_the_light_P01_headX_temp), lambda (i,x):i-x):
+            sublist = map(itemgetter(1), g)
+            if len(sublist) > 1:
+                before_the_light_P01_headX_in_the_region.append(sublist)
+
+        for k, g in groupby(enumerate(during_the_light_P01_headX_temp), lambda (i,x):i-x):
+            sublist = map(itemgetter(1), g)
+            if len(sublist) > 1:
+                during_the_light_P01_headX_in_the_region.append(sublist)
+
+        for k, g in groupby(enumerate(before_the_light_P10_headX_temp), lambda (i,x):i-x):
+            sublist = map(itemgetter(1), g)
+            if len(sublist) > 1:
+                before_the_light_P10_headX_in_the_region.append(sublist)
+
+        for k, g in groupby(enumerate(during_the_light_P10_headX_temp), lambda (i,x):i-x):
+            sublist = map(itemgetter(1), g)
+            if len(sublist) > 1:
+                during_the_light_P10_headX_in_the_region.append(sublist)
+
+        ## By using the index lists, create distance travelled lists of lists.
+        ## For P01
+        before_the_light_P01_headX_in_the_region_distance_travelled = []
+
+        for l in before_the_light_P01_headX_in_the_region:
+            start_idx = l[0]
+            end_idx = l[-1]
+            temp = []
+
+            for i in range(start_idx,end_idx):
+                diff = abs(before_the_light_P01_headX[i+1] - before_the_light_P01_headX[i])
+                temp.append(diff)
+            before_the_light_P01_headX_in_the_region_distance_travelled.append(temp)
+
+        during_the_light_P01_headX_in_the_region_distance_travelled = []
+
+        for l in during_the_light_P01_headX_in_the_region:
+            start_idx = l[0]
+            end_idx = l[-1]
+            temp = []
+
+            for i in range(start_idx,end_idx):
+                diff = abs(during_the_light_P01_headX[i+1] - during_the_light_P01_headX[i])
+                temp.append(diff)
+            during_the_light_P01_headX_in_the_region_distance_travelled.append(temp)
+
+        ## for P10
+        before_the_light_P10_headX_in_the_region_distance_travelled = []
+
+        for l in before_the_light_P10_headX_in_the_region:
+            start_idx = l[0]
+            end_idx = l[-1]
+            temp = []
+
+            for i in range(start_idx,end_idx):
+                diff = abs(before_the_light_P10_headX[i+1] - before_the_light_P10_headX[i])
+                temp.append(diff)
+            before_the_light_P10_headX_in_the_region_distance_travelled.append(temp)
+
+        during_the_light_P10_headX_in_the_region_distance_travelled = []
+
+        for l in during_the_light_P10_headX_in_the_region:
+            start_idx = l[0]
+            end_idx = l[-1]
+            temp = []
+
+            for i in range(start_idx,end_idx):
+                diff = abs(during_the_light_P10_headX[i+1] - during_the_light_P10_headX[i])
+                temp.append(diff)
+            during_the_light_P10_headX_in_the_region_distance_travelled.append(temp)
+
+        ## Send the distance travelled lists to the calculateSpeed function to get an average speed (mm/sec)    
+        speed_before_the_light_P01_headX_in_the_region = calculateSpeed(before_the_light_P01_headX_in_the_region_distance_travelled, fps, mmPerPixel)
+        speed_during_the_light_P01_headX_in_the_region = calculateSpeed(during_the_light_P01_headX_in_the_region_distance_travelled, fps, mmPerPixel)
+
+        speed_before_the_light_P10_headX_in_the_region = calculateSpeed(before_the_light_P10_headX_in_the_region_distance_travelled, fps, mmPerPixel)
+        speed_during_the_light_P10_headX_in_the_region = calculateSpeed(during_the_light_P10_headX_in_the_region_distance_travelled, fps, mmPerPixel)
+
+        ## Calculate the speed ratios for P01 and P10
+        speed_ratio_P01 = speed_during_the_light_P01_headX_in_the_region / speed_before_the_light_P01_headX_in_the_region
+        speed_ratio_P10 = speed_during_the_light_P10_headX_in_the_region / speed_before_the_light_P10_headX_in_the_region
+
+        ## Get and Store the log2 of the ratios
+        log2_speed_ratio_P01 = math.log(speed_ratio_P01, 2.0)
+        log2_speed_ratio_P10 = math.log(speed_ratio_P10, 2.0)
+
+        list_of_log2_speed_ratio_P01.append(log2_speed_ratio_P01)
+        list_of_log2_speed_ratio_P10.append(log2_speed_ratio_P10)
+
+
+    df = df.assign(Log2SpeedRatio_P01 = pd.Series(list_of_log2_speed_ratio_P01, index=df.index),
+                   Log2SpeedRatio_P10 = pd.Series(list_of_log2_speed_ratio_P10, index=df.index))
+
+    df = df.assign(Log2SpeedRatio_Mean = pd.Series(df[['Log2SpeedRatio_P01','Log2SpeedRatio_P10']].mean(axis=1), index=df.index))
+    plotTheMetric(df,'Log2SpeedRatio',rootDir,combineControls,dropNans)
+
+    return df
+
+
+# ## Metric: Delta Time Spent Before and During Light
+
+# In[373]:
+
+
+def calculatePercentageTimeSpent(data, total_epoch_time):
     
-    ## get the borders
-    border_P01 = df['Border|P01'][fly]
-    border_P10 = df['Border|P01'][fly]
+    percentageTimeSpent = float(len(data)) / float(total_epoch_time) * 100
     
-    ## get fps and mmPerPixel for speed calculation
-    fps = df['fps'][fly]
-    mmPerPixel = df['mmPerPix'][fly]
-    ## get the fly's headX for the entire exp
-    fly_headX_coords = df['HeadX(pix)'][fly]
-    
-    ##  chop up the headX into the episodes
-    before_the_light_P01_headX = fly_headX_coords[:lightON_P01[0]]
-    during_the_light_P01_headX = fly_headX_coords[lightON_P01[0]:lightON_P01[1]]
-    
-    before_the_light_P10_headX = fly_headX_coords[lightON_P01[1]:lightON_P10[0]]
-    during_the_light_P10_headX = fly_headX_coords[lightON_P10[0]:lightON_P10[1]]
-    
-    ## lists to keep the chunks (lists) of headX there were in the region that the light was going to be turned ON
-    before_the_light_P01_headX_in_the_region = []
-    during_the_light_P01_headX_in_the_region = []
-    
-    before_the_light_P10_headX_in_the_region = []
-    during_the_light_P10_headX_in_the_region = []
-    
-    ## keep the indices of headX where they are in the region of interest
-    ## for P01
-    before_the_light_P01_headX_temp = []
-    for i in range(len(before_the_light_P01_headX)):
-        if before_the_light_P01_headX[i] > border_P01:
-            before_the_light_P01_headX_temp.append(i)
-    
-    during_the_light_P01_headX_temp = []
-    for i in range(len(during_the_light_P01_headX)):
-        if during_the_light_P01_headX[i] > border_P01:
-            during_the_light_P01_headX_temp.append(i)
-       
-    ## for P10
-    before_the_light_P10_headX_temp = []
-    for i in range(len(before_the_light_P10_headX)):
-        if before_the_light_P10_headX[i] < border_P10:
-            before_the_light_P10_headX_temp.append(i)
-            
-    during_the_light_P10_headX_temp = []
-    for i in range(len(during_the_light_P10_headX)):
-        if during_the_light_P10_headX[i] < border_P10:
-            during_the_light_P10_headX_temp.append(i)
-    
-    ## chop up the indices' lists and find consecutives
-    for k, g in groupby(enumerate(before_the_light_P01_headX_temp), lambda (i,x):i-x):
-        sublist = map(itemgetter(1), g)
-        if len(sublist) > 1:
-            before_the_light_P01_headX_in_the_region.append(sublist)
-            
-    for k, g in groupby(enumerate(during_the_light_P01_headX_temp), lambda (i,x):i-x):
-        sublist = map(itemgetter(1), g)
-        if len(sublist) > 1:
-            during_the_light_P01_headX_in_the_region.append(sublist)
-            
-    for k, g in groupby(enumerate(before_the_light_P10_headX_temp), lambda (i,x):i-x):
-        sublist = map(itemgetter(1), g)
-        if len(sublist) > 1:
-            before_the_light_P10_headX_in_the_region.append(sublist)
-            
-    for k, g in groupby(enumerate(during_the_light_P10_headX_temp), lambda (i,x):i-x):
-        sublist = map(itemgetter(1), g)
-        if len(sublist) > 1:
-            during_the_light_P10_headX_in_the_region.append(sublist)
+    return percentageTimeSpent
 
-    ## By using the index lists, create distance travelled lists of lists.
-    ## For P01
-    before_the_light_P01_headX_in_the_region_distance_travelled = []
-    
-    for l in before_the_light_P01_headX_in_the_region:
-        start_idx = l[0]
-        end_idx = l[-1]
-        temp = []
-        
-        for i in range(start_idx,end_idx):
-            diff = abs(before_the_light_P01_headX[i+1] - before_the_light_P01_headX[i])
-            temp.append(diff)
-        before_the_light_P01_headX_in_the_region_distance_travelled.append(temp)
-    
-    during_the_light_P01_headX_in_the_region_distance_travelled = []
-    
-    for l in during_the_light_P01_headX_in_the_region:
-        start_idx = l[0]
-        end_idx = l[-1]
-        temp = []
-        
-        for i in range(start_idx,end_idx):
-            diff = abs(during_the_light_P01_headX[i+1] - during_the_light_P01_headX[i])
-            temp.append(diff)
-        during_the_light_P01_headX_in_the_region_distance_travelled.append(temp)
-        
-    ## for P10
-    before_the_light_P10_headX_in_the_region_distance_travelled = []
-    
-    for l in before_the_light_P10_headX_in_the_region:
-        start_idx = l[0]
-        end_idx = l[-1]
-        temp = []
-        
-        for i in range(start_idx,end_idx):
-            diff = abs(before_the_light_P10_headX[i+1] - before_the_light_P10_headX[i])
-            temp.append(diff)
-        before_the_light_P10_headX_in_the_region_distance_travelled.append(temp)
-    
-    during_the_light_P10_headX_in_the_region_distance_travelled = []
-    
-    for l in during_the_light_P10_headX_in_the_region:
-        start_idx = l[0]
-        end_idx = l[-1]
-        temp = []
-        
-        for i in range(start_idx,end_idx):
-            diff = abs(during_the_light_P10_headX[i+1] - during_the_light_P10_headX[i])
-            temp.append(diff)
-        during_the_light_P10_headX_in_the_region_distance_travelled.append(temp)
-    
-    
-    ## Send the distance travelled lists to the calculateSpeed function to get an average speed (mm/sec)    
-    speed_before_the_light_P01_headX_in_the_region = calculateSpeed(before_the_light_P01_headX_in_the_region_distance_travelled, fps, mmPerPixel)
-    speed_during_the_light_P01_headX_in_the_region = calculateSpeed(during_the_light_P01_headX_in_the_region_distance_travelled, fps, mmPerPixel)
-    speed_before_the_light_P10_headX_in_the_region = calculateSpeed(before_the_light_P10_headX_in_the_region_distance_travelled, fps, mmPerPixel)
-    speed_during_the_light_P10_headX_in_the_region = calculateSpeed(during_the_light_P10_headX_in_the_region_distance_travelled, fps, mmPerPixel)
+def DeltaPercentTimeSpent(df, rootDir, combineControls=False, dropNans=False):
+    list_of_delta_per_time_spent_P01 = []
+    list_of_delta_per_time_spent_P10 = []
 
-    speed_ratio_P01 = speed_during_the_light_P01_headX_in_the_region / speed_before_the_light_P01_headX_in_the_region
-    speed_ratio_P10 = speed_during_the_light_P10_headX_in_the_region / speed_before_the_light_P10_headX_in_the_region
-    
-    print speed_before_the_light_P01_headX_in_the_region, speed_during_the_light_P01_headX_in_the_region
-    print speed_before_the_light_P10_headX_in_the_region, speed_during_the_light_P10_headX_in_the_region
-    break
+    for fly in range(len(df)):
+
+        ## get the light ON indices to detect before and during light episodes in an experiment
+        lightON_P01 = df['LightON index|P01'][fly]
+        lightON_P10 = df['LightON index|P10'][fly] 
+
+        ## get the borders
+        border_P01 = df['Border|P01'][fly]
+        border_P10 = df['Border|P01'][fly]
+
+        ## get the fly's headX for the entire exp
+        fly_headX_coords = df['HeadX(pix)'][fly]
+
+        ##  chop up the headX into the episodes
+        before_the_light_P01_headX = fly_headX_coords[:lightON_P01[0]]
+        during_the_light_P01_headX = fly_headX_coords[lightON_P01[0]:lightON_P01[1]]
+
+        before_the_light_P10_headX = fly_headX_coords[lightON_P01[1]:lightON_P10[0]]
+        during_the_light_P10_headX = fly_headX_coords[lightON_P10[0]:lightON_P10[1]]
+
+        ## lists to keep the chunks (lists) of headX there were in the region that the light was going to be turned ON
+        before_the_light_P01_headX_in_the_region = []
+        during_the_light_P01_headX_in_the_region = []
+
+        before_the_light_P10_headX_in_the_region = []
+        during_the_light_P10_headX_in_the_region = []
+
+        ## keep the indices of headX where they are in the region of interest
+        ## for P01
+        before_the_light_P01_headX_temp = []
+        for i in range(len(before_the_light_P01_headX)):
+            if before_the_light_P01_headX[i] > border_P01:
+                before_the_light_P01_headX_temp.append(i)
+
+        during_the_light_P01_headX_temp = []
+        for i in range(len(during_the_light_P01_headX)):
+            if during_the_light_P01_headX[i] > border_P01:
+                during_the_light_P01_headX_temp.append(i)
+
+        ## for P10
+        before_the_light_P10_headX_temp = []
+        for i in range(len(before_the_light_P10_headX)):
+            if before_the_light_P10_headX[i] < border_P10:
+                before_the_light_P10_headX_temp.append(i)
+
+        during_the_light_P10_headX_temp = []
+        for i in range(len(during_the_light_P10_headX)):
+            if during_the_light_P10_headX[i] < border_P10:
+                during_the_light_P10_headX_temp.append(i)
+
+        ## calculate the percentage of the time spent in the region of interest
+        before_the_light_P01_perTimeSpent = calculatePercentageTimeSpent(before_the_light_P01_headX_temp, len(before_the_light_P01_headX))
+        during_the_light_P01_perTimeSpent = calculatePercentageTimeSpent(during_the_light_P01_headX_temp, len(during_the_light_P01_headX))
+
+        before_the_light_P10_perTimeSpent = calculatePercentageTimeSpent(before_the_light_P10_headX_temp, len(before_the_light_P10_headX))
+        during_the_light_P10_perTimeSpent = calculatePercentageTimeSpent(during_the_light_P10_headX_temp, len(during_the_light_P10_headX))
+
+        ## get the difference between dark and light phases
+        deltaPerTimeSpent_P01 = during_the_light_P01_perTimeSpent - before_the_light_P01_perTimeSpent
+        deltaPerTimeSpent_P10 = during_the_light_P10_perTimeSpent - before_the_light_P10_perTimeSpent
+
+        list_of_delta_per_time_spent_P01.append(deltaPerTimeSpent_P01)
+        list_of_delta_per_time_spent_P10.append(deltaPerTimeSpent_P10)
 
 
+    df = df.assign(DeltaPercentTimeSpent_P01 = pd.Series(list_of_delta_per_time_spent_P01, index=df.index),
+                   DeltaPercentTimeSpent_P10 = pd.Series(list_of_delta_per_time_spent_P10, index=df.index))
 
-# In[276]:
-
-
-1.5940418512 * 0.365 * 16
-
-
-# In[269]:
-
-
-c = 0
-for i in before_the_light_P01_headX_in_the_region_distance_travelled:
-    for j in i:
-        c = c+1
-        
-print c
-
-
-# In[271]:
-
-
-df['fps']
-
-
-# In[226]:
-
-
-a = [1,2,3,4,9,10,11,22,44,88,100,111,23,44,55]
-
-
-# In[246]:
-
-
-temp = []
-
-for i in range(len(a)-1):
-    if (9 < a[i]) & (a[i] < 60):
-        temp.append(i)
-temp
-
-
-# In[249]:
-
-
-for k, g in groupby(enumerate(temp), lambda (i,x):i-x):
-    lists = map(itemgetter(1), g)
-    if len(lists) > 1:
-        print lists
-    
+    df = df.assign(DeltaPercentTimeSpent_Mean = pd.Series(df[['DeltaPerTimeSpent_P01','DeltaPerTimeSpent_P10']].mean(axis=1), index=df.index))
+    plotTheMetric(df,'DeltaPercentTimeSpent',rootDir,combineControls,dropNans)
+    return df
 
 
 # ## Metric Queue
 # 
-# ### Speed ratio (mm/sec) (Speed in the P01 region during Dark / Speed in the P01 region during Light)
 # ### (Time spent in P01 during the light - Time spent in P01 before the light) / Time spent in P01 before the light
-# ### Acute change (or acceleration??) in the speed in the first 3 secs after entering / leaving the light zone
+# ### Speed crossing to the light and crossing to the dark
+# ### Stop probability
 
 # ## Track Visualization
 
-# In[288]:
+# In[299]:
 
 
 ## Plot a single fly's trajectory as well as first light contacts.
@@ -1095,7 +1152,7 @@ def VisualizeSingleFlyTrajectory(df,flyiLoc,mark =False, smoothHeadX = False, sp
     ax1 = plt.subplot(111)
 
     if speed == True:
-        speed = np.diff(headXData)
+        speed = np.absolute(np.diff(headXData))
         ax1.plot(range(len(speed)), speed, color='black')
         
         normalized_border_P01 = border_P01/145.0
@@ -1103,6 +1160,8 @@ def VisualizeSingleFlyTrajectory(df,flyiLoc,mark =False, smoothHeadX = False, sp
         
         ax1.axvspan(lightON_P01, lightOFF_P01, ymin = normalized_border_P01, ymax = 1, color='red', alpha=0.3)
         ax1.axvspan(lightON_P10, lightOFF_P10, ymin = 0, ymax = normalized_border_P10, color='red', alpha=0.3)
+        ax1.set_ylabel('Absolute Speed')
+        ax1.set_xlabel('Time frames')
     else:
         ax1.plot(range(len(headXData)), headXData, color='black')
 
@@ -1135,19 +1194,13 @@ def VisualizeSingleFlyTrajectory(df,flyiLoc,mark =False, smoothHeadX = False, sp
     return None
 
 
-# In[289]:
+# In[378]:
 
 
-flyiLoc = 0
-VisualizeSingleFlyTrajectory(dd, flyiLoc=flyiLoc,mark = 2473, smoothHeadX=False,speed=True)
+flyiLoc = 4
+VisualizeSingleFlyTrajectory(dd, flyiLoc=flyiLoc,mark = False, smoothHeadX=False,speed=False)
 # plt.savefig('ContactedLight_bothHalves.pdf',dpi=1000,bbox_inches='tight')
 # plt.show()
-
-
-# In[131]:
-
-
-dd['LightON index|P10'][0]
 
 
 # In[213]:
@@ -1638,7 +1691,7 @@ df = df.assign(Status_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Statu
              df['Wind status'], index = df.index))  
 
 
-# In[171]:
+# In[374]:
 
 
 # TSALE(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
@@ -1646,5 +1699,13 @@ df = df.assign(Status_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Statu
 # weighted_TSALE(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=True, combineControls=True)
 # LAI(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
 # RPI(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
-NoBC(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
+# NoBC(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
+# Log2SpeedRation(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
+DeltaPercentTimeSpent(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
+
+
+# In[349]:
+
+
+ddf.iloc[10]
 
