@@ -1115,9 +1115,198 @@ def DeltaPercentTimeSpent(df, rootDir, combineControls=False, dropNans=False):
     return df
 
 
+# ## Metric: Speed crossing inside
+
+# In[408]:
+
+
+#NTS: CHANGE to SMOOTHED HEADX
+def calculateAcuteSpeed(data, crossing_idx, fps, mmPerPix, length_sec=3):
+    sec_to_frames = length_sec * fps
+    crossing_phase = data[crossing_idx:crossing_idx+sec_to_frames]
+    
+    total_distance_pix = np.sum(np.absolute(np.diff(crossing_phase)))
+    total_distance_mm = total_distance_pix * mmPerPix
+
+    acute_speed_pix_per_frame = float(total_distance_pix)/float(sec_to_frames)
+    acute_speed_mm_per_sec = float(total_distance_mm)/float(length_sec)
+    
+    return acute_speed_mm_per_sec
+
+def SpeedCrossingInside(df, rootDir, combineControls=False, dropNans=False):
+    ## lists to keep the metric for each fly
+    averaged_list_of_acute_speed_crossing_inside_P01 = []
+    averaged_list_of_acute_speed_crossing_inside_P10 = []
+
+    for fly in range(len(df)):
+        ## lists to keep the metric for each fly
+        list_of_acute_speed_crossing_inside_P01 = []
+        list_of_acute_speed_crossing_inside_P10 = []
+
+        ## get the P01 and P10 epoch indices
+        start_of_P01 = df['LightON index|P01'][fly][0]
+        end_of_P01 = df['LightON index|P01'][fly][1]
+
+        start_of_P10 = df['LightON index|P10'][fly][0]
+        end_of_P10 = df['LightON index|P10'][fly][1]
+
+        ## get the head X positions during the epochs
+        headX_during_P01 = df['HeadX(pix)'][fly][start_of_P01:end_of_P01]
+        headX_during_P10 = df['HeadX(pix)'][fly][start_of_P10:end_of_P10]
+
+        ## get the border corrdinates
+        border_P01 = df['Border|P01'][fly]
+        border_P10 = df['Border|P10'][fly]
+
+        ## get the fps for acute speed calculations
+        fps = df['fps'][fly]
+        mmPerPix = df['mmPerPix'][fly]
+
+        ## go thru the headX coords and detect border crossings
+        ## every time detect a cross, send the index to the calculateAcuteSpeed function
+        ## for P01 epoch
+        for i in range(len(headX_during_P01)-1):
+            current_coor = headX_during_P01[i]
+            next_coor = headX_during_P01[i+1]
+
+            ## only when crossing inside            
+            if (current_coor < border_P01) & (next_coor > border_P01):
+                acute_speed_change_crossing_inside_P01 = calculateAcuteSpeed(headX_during_P01, crossing_idx = i, fps = fps, mmPerPix = mmPerPix, length_sec = 3)
+                list_of_acute_speed_crossing_inside_P01.append(acute_speed_change_crossing_inside_P01)
+
+                ## Since each fly can have multiple border crossings and hence acute speeds,I get the average per fly.
+        if list_of_acute_speed_crossing_inside_P01 > 0:
+            average_acute_speed_change_P01 = np.mean(list_of_acute_speed_crossing_inside_P01)
+            averaged_list_of_acute_speed_crossing_inside_P01.append(average_acute_speed_change_P01)
+        else:
+            averaged_list_of_acute_speed_crossing_inside_P01.append(np.nan)
+
+        ## go thru the headX coords and detect border crossings
+        ## every time detect a cross, send the index to the calculateAcuteSpeed function
+        ## for P10 epoch
+        for i in range(len(headX_during_P10)-1):
+            current_coor = headX_during_P10[i]
+            next_coor = headX_during_P10[i+1]
+
+            ## only when crossing inside            
+            if (current_coor > border_P10) & (next_coor < border_P10):
+                acute_speed_change_crossing_inside_P10 = calculateAcuteSpeed(headX_during_P10, crossing_idx = i, fps = fps, mmPerPix = mmPerPix, length_sec = 3)
+                list_of_acute_speed_crossing_inside_P10.append(acute_speed_change_crossing_inside_P10)
+
+        ## Since each fly can have multiple border crossings and hence acute speeds,I get the average per fly.
+        if list_of_acute_speed_crossing_inside_P10 > 0:
+            average_acute_speed_change_P10 = np.mean(list_of_acute_speed_crossing_inside_P10)
+            averaged_list_of_acute_speed_crossing_inside_P10.append(average_acute_speed_change_P10)
+        else:
+            averaged_list_of_acute_speed_crossing_inside_P10.append(np.nan)
+
+
+    df = df.assign(SpeedCrossingInside_P01 = pd.Series(averaged_list_of_acute_speed_crossing_inside_P01, index=df.index),
+                   SpeedCrossingInside_P10 = pd.Series(averaged_list_of_acute_speed_crossing_inside_P10, index=df.index))
+
+    df = df.assign(SpeedCrossingInside_Mean = pd.Series(df[['SpeedCrossingInside_P01','SpeedCrossingInside_P10']].mean(axis=1), index=df.index))
+    plotTheMetric(df,'SpeedCrossingInside',rootDir,combineControls,dropNans)
+    
+    return df
+
+
+# ## Metric: Speed crossing outside
+
+# In[410]:
+
+
+#NTS: CHANGE to SMOOTHED HEADX
+def calculateAcuteSpeed(data, crossing_idx, fps, mmPerPix, length_sec=3):
+    sec_to_frames = length_sec * fps
+    crossing_phase = data[crossing_idx:crossing_idx+sec_to_frames]
+    
+    total_distance_pix = np.sum(np.absolute(np.diff(crossing_phase)))
+    total_distance_mm = total_distance_pix * mmPerPix
+
+    acute_speed_pix_per_frame = float(total_distance_pix)/float(sec_to_frames)
+    acute_speed_mm_per_sec = float(total_distance_mm)/float(length_sec)
+    
+    return acute_speed_mm_per_sec
+
+def SpeedCrossingOutside(df, rootDir, combineControls=False, dropNans=False):
+    ## lists to keep the metric for each fly
+    averaged_list_of_acute_speed_crossing_outside_P01 = []
+    averaged_list_of_acute_speed_crossing_outside_P10 = []
+
+    for fly in range(len(df)):
+        ## lists to keep the metric for each fly
+        list_of_acute_speed_crossing_outside_P01 = []
+        list_of_acute_speed_crossing_outside_P10 = []
+
+        ## get the P01 and P10 epoch indices
+        start_of_P01 = df['LightON index|P01'][fly][0]
+        end_of_P01 = df['LightON index|P01'][fly][1]
+
+        start_of_P10 = df['LightON index|P10'][fly][0]
+        end_of_P10 = df['LightON index|P10'][fly][1]
+
+        ## get the head X positions during the epochs
+        headX_during_P01 = df['HeadX(pix)'][fly][start_of_P01:end_of_P01]
+        headX_during_P10 = df['HeadX(pix)'][fly][start_of_P10:end_of_P10]
+
+        ## get the border corrdinates
+        border_P01 = df['Border|P01'][fly]
+        border_P10 = df['Border|P10'][fly]
+
+        ## get the fps for acute speed calculations
+        fps = df['fps'][fly]
+        mmPerPix = df['mmPerPix'][fly]
+
+        ## go thru the headX coords and detect border crossings
+        ## every time detect a cross, send the index to the calculateAcuteSpeed function
+        ## for P01 epoch
+        for i in range(len(headX_during_P01)-1):
+            current_coor = headX_during_P01[i]
+            next_coor = headX_during_P01[i+1]
+
+            ## only when crossing outside            
+            if (current_coor > border_P01) & (next_coor < border_P01):
+                acute_speed_change_crossing_outside_P01 = calculateAcuteSpeed(headX_during_P01, crossing_idx = i, fps = fps, mmPerPix = mmPerPix, length_sec = 3)
+                list_of_acute_speed_crossing_outside_P01.append(acute_speed_change_crossing_outside_P01)
+
+        ## Since each fly can have multiple border crossings and hence acute speeds,I get the average per fly.
+        if list_of_acute_speed_crossing_outside_P01 > 0:
+            average_acute_speed_change_P01 = np.mean(list_of_acute_speed_crossing_outside_P01)
+            averaged_list_of_acute_speed_crossing_outside_P01.append(average_acute_speed_change_P01)
+        else:
+            averaged_list_of_acute_speed_crossing_outside_P01.append(np.nan)
+
+        ## go thru the headX coords and detect border crossings
+        ## every time detect a cross, send the index to the calculateAcuteSpeed function
+        ## for P10 epoch
+        for i in range(len(headX_during_P10)-1):
+            current_coor = headX_during_P10[i]
+            next_coor = headX_during_P10[i+1]
+
+            ## only when crossing outside            
+            if (current_coor < border_P10) & (next_coor > border_P10):
+                acute_speed_change_crossing_outside_P10 = calculateAcuteSpeed(headX_during_P10, crossing_idx = i, fps = fps, mmPerPix = mmPerPix, length_sec = 3)
+                list_of_acute_speed_crossing_outside_P10.append(acute_speed_change_crossing_outside_P10)
+
+        ## Since each fly can have multiple border crossings and hence acute speeds,I get the average per fly.
+        if list_of_acute_speed_crossing_outside_P10 > 0:
+            average_acute_speed_change_P10 = np.mean(list_of_acute_speed_crossing_outside_P10)
+            averaged_list_of_acute_speed_crossing_outside_P10.append(average_acute_speed_change_P10)
+        else:
+            averaged_list_of_acute_speed_crossing_outside_P10.append(np.nan)
+
+
+    df = df.assign(SpeedCrossingOutside_P01 = pd.Series(averaged_list_of_acute_speed_crossing_outside_P01, index=df.index),
+                   SpeedCrossingOutside_P10 = pd.Series(averaged_list_of_acute_speed_crossing_outside_P10, index=df.index))
+
+    df = df.assign(SpeedCrossingOutside_Mean = pd.Series(df[['SpeedCrossingOutside_P01','SpeedCrossingOutside_P10']].mean(axis=1), index=df.index))
+    plotTheMetric(df,'SpeedCrossingOutside',rootDir,combineControls,dropNans)
+    
+    return df
+
+
 # ## Metric Queue
 # 
-# ### (Time spent in P01 during the light - Time spent in P01 before the light) / Time spent in P01 before the light
 # ### Speed crossing to the light and crossing to the dark
 # ### Stop probability
 
@@ -1194,10 +1383,10 @@ def VisualizeSingleFlyTrajectory(df,flyiLoc,mark =False, smoothHeadX = False, sp
     return None
 
 
-# In[378]:
+# In[416]:
 
 
-flyiLoc = 4
+flyiLoc = 25
 VisualizeSingleFlyTrajectory(dd, flyiLoc=flyiLoc,mark = False, smoothHeadX=False,speed=False)
 # plt.savefig('ContactedLight_bothHalves.pdf',dpi=1000,bbox_inches='tight')
 # plt.show()
@@ -1691,7 +1880,7 @@ df = df.assign(Status_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Statu
              df['Wind status'], index = df.index))  
 
 
-# In[374]:
+# In[411]:
 
 
 # TSALE(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
@@ -1701,7 +1890,9 @@ df = df.assign(Status_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Statu
 # RPI(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
 # NoBC(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
 # Log2SpeedRation(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
-DeltaPercentTimeSpent(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
+# DeltaPercentTimeSpent(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
+# SpeedCrossingInside(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
+SpeedCrossingOutside(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
 
 
 # In[349]:
