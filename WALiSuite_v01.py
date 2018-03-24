@@ -1,36 +1,9 @@
 
 # coding: utf-8
 
-# ## Main function
-
-# In[65]:
-
-
-def WALiMe(rootDir, metrics):
-    
-    ## Get a list of ORNs in the folder
-    ornList = os.listdir(rootDir)
-    
-    for ORN in ornList:
-        ## read the data in a df
-        print '%s is in progress...' %(ORN)
-        
-        rootDir = os.path.join(rootDir,ORN)
-        df = dataToDataframe(rootDir,metrics)
-        
-        ## apply the metrics
-        TSALE(df,rootDir,dropNans=False,combineControls=True)
-        
-#         LaXS()       
-        
-        
-    
-    return df, summaryTable
-
-
 # ## Crawl in the directory, load data in
 
-# In[66]:
+# In[41]:
 
 
 ## The InLight col we have in the count csv files and count tab in the tdms file is based on cX data. Meaning that we're doing
@@ -70,7 +43,7 @@ def detectFPS(timeStamps):
     
     return fps
 
-def dataToDataframe(rootDir,metrics):
+def dataToDataframe(rootDir):
         
     ## Generate a single dataframe from the .tdms and pattern files 
     temp = {'Tdms file name':[],'Date':[],'Time':[],'mmPerPix':[],'fps':[],'Light type':[],'Light Intensity(uW/mm2)':[],'Wind status':[],
@@ -244,7 +217,7 @@ def dataToDataframe(rootDir,metrics):
 
 # ## Metric: LaXS
 
-# In[142]:
+# In[25]:
 
 
 ## Usual PI calculation, called by
@@ -257,7 +230,7 @@ def calculatePI(data):
     PI = float(totalTimeinLight - totalTimeinDark)/float(numofTimePoints)
     return PI
 
-def LaXS(df, rootDir, Xsec = 30, combineControls=False):
+def LaXS(df, rootDir, Xsec = 30, combineControls=False, dropNans = False):
     numberOfFlies = df.shape[0]
     LXS_P01_list = []
     LXS_P10_list = []
@@ -287,14 +260,14 @@ def LaXS(df, rootDir, Xsec = 30, combineControls=False):
     df = df.assign(LaXS_Mean = pd.Series(df[['LaXS_P01','LaXS_P10']].mean(axis=1), 
                                                     index=df.index))
     
-    plotTheMetric(df,'LaXS',rootDir,combineControls)
+    plotTheMetric(df,'LaXS',rootDir, combineControls)
     
     return None
 
 
 # ## Metric: TSALE
 
-# In[117]:
+# In[24]:
 
 
 def TSALE(df, rootDir, combineControls=False, dropNans=False):
@@ -379,10 +352,10 @@ def MeanPreferenceIndexNoNANs(df):
 
 # ## Metric: weighted-TSALE
 
-# In[118]:
+# In[26]:
 
 
-def weighted_TSALE(dff, rootDir, combineControls=False, dropNans=False):
+def weighted_TSALE(dff, rootDir,combineControls=False, dropNans=False):
     
     df = TSALE(dff, rootDir, dropNans, combineControls)
     ## empty lists to store the weights for both epochs
@@ -427,7 +400,7 @@ def weighted_TSALE(dff, rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Light attraction index
 
-# In[168]:
+# In[35]:
 
 
 ## Function 1: Detect choice zone entrance/exits indices, store them in the df
@@ -486,8 +459,8 @@ def DetectEntraceandExitIndicesToTheChoiceZone(df, choiceZoneWidth_mm = 10, thre
         P10_startIndex, P10_endIndex = df.iloc[fly]['LightON index|P10']
 
         ## get head X coordinates while the light was ON, P01 and P10
-        headXcoordIn_P01 = df.iloc[fly]['HeadX(pix)'][P01_startIndex:P01_endIndex]
-        headXcoordIn_P10 = df.iloc[fly]['HeadX(pix)'][P10_startIndex:P10_endIndex]
+        headXcoordIn_P01 = df.iloc[fly]['HeadX(pix)_smoothed'][P01_startIndex:P01_endIndex]
+        headXcoordIn_P10 = df.iloc[fly]['HeadX(pix)_smoothed'][P10_startIndex:P10_endIndex]
 
         ## go thru the head X coordinates during the P01 event to find entrances and related exits(if any)
         for i in range(len(headXcoordIn_P01)-1): 
@@ -670,12 +643,12 @@ def LAI(df, rootDir, combineControls=False, dropNans=False):
 
     df = df.assign(LAI_Mean = pd.Series(df[['LAI_P01','LAI_P10']].mean(axis=1), index=df.index))
     plotTheMetric(df,'LAI',rootDir,combineControls,dropNans)
-    return df
+    return None
 
 
 # ## Metrix: Reversal PI
 
-# In[120]:
+# In[28]:
 
 
 def RPI(df, rootDir, combineControls=False, dropNans=False):
@@ -763,12 +736,12 @@ def RPI(df, rootDir, combineControls=False, dropNans=False):
     df = df.assign(RPI_Mean = pd.Series(df[['RPI_P01','RPI_P10']].mean(axis=1), index=df.index))
     
     plotTheMetric(df,'RPI',rootDir,combineControls,dropNans)
-    return df
+    return None
 
 
 # ## Metric: Number of Border Crossings
 
-# In[167]:
+# In[36]:
 
 
 ### NTS: fix this to SMOOTHED HEAD X!!
@@ -788,8 +761,8 @@ def NoBC(df, rootDir, combineControls=False, dropNans=False):
         end_of_P10 = df['LightON index|P10'][fly][1]
 
         ## get the head X positions during the epochs
-        headX_during_P01 = df['HeadX(pix)'][fly][start_of_P01:end_of_P01]
-        headX_during_P10 = df['HeadX(pix)'][fly][start_of_P10:end_of_P10]
+        headX_during_P01 = df['HeadX(pix)_smoothed'][fly][start_of_P01:end_of_P01]
+        headX_during_P10 = df['HeadX(pix)_smoothed'][fly][start_of_P10:end_of_P10]
 
         ## get the border corrdinates
         border_P01 = df['Border|P01'][fly]
@@ -831,12 +804,12 @@ def NoBC(df, rootDir, combineControls=False, dropNans=False):
     df = df.assign(NoBC_Mean = pd.Series(df[['NoBC_P01','NoBC_P10']].mean(axis=1), index=df.index))
     plotTheMetric(df,'NoBC',rootDir,combineControls,dropNans)
 
-    return df
+    return None
 
 
 # ## Metric: Speed ratio
 
-# In[345]:
+# In[114]:
 
 
 ### NTS: convert HeadX to SMOOTHED HEADX
@@ -870,7 +843,7 @@ def calculateSpeed(data, fps, mmPerPixel):
         
     return speed_mm_per_sec
 
-def Log2SpeedRation(df ,rootDir, combineControls=False, dropNans=False):
+def Log2SpeedRatio(df ,rootDir, combineControls=False, dropNans=False):
     list_of_log2_speed_ratio_P01 = []
     list_of_log2_speed_ratio_P10 = []
 
@@ -888,7 +861,7 @@ def Log2SpeedRation(df ,rootDir, combineControls=False, dropNans=False):
         fps = df['fps'][fly]
         mmPerPixel = df['mmPerPix'][fly]
         ## get the fly's headX for the entire exp
-        fly_headX_coords = df['HeadX(pix)'][fly]
+        fly_headX_coords = df['HeadX(pix)_smoothed'][fly]
 
         ##  chop up the headX into the episodes
         before_the_light_P01_headX = fly_headX_coords[:lightON_P01[0]]
@@ -1024,12 +997,12 @@ def Log2SpeedRation(df ,rootDir, combineControls=False, dropNans=False):
     df = df.assign(Log2SpeedRatio_Mean = pd.Series(df[['Log2SpeedRatio_P01','Log2SpeedRatio_P10']].mean(axis=1), index=df.index))
     plotTheMetric(df,'Log2SpeedRatio',rootDir,combineControls,dropNans)
 
-    return df
+    return None
 
 
 # ## Metric: Delta Time Spent Before and During Light
 
-# In[373]:
+# In[38]:
 
 
 def calculatePercentageTimeSpent(data, total_epoch_time):
@@ -1053,7 +1026,7 @@ def DeltaPercentTimeSpent(df, rootDir, combineControls=False, dropNans=False):
         border_P10 = df['Border|P01'][fly]
 
         ## get the fly's headX for the entire exp
-        fly_headX_coords = df['HeadX(pix)'][fly]
+        fly_headX_coords = df['HeadX(pix)_smoothed'][fly]
 
         ##  chop up the headX into the episodes
         before_the_light_P01_headX = fly_headX_coords[:lightON_P01[0]]
@@ -1110,14 +1083,14 @@ def DeltaPercentTimeSpent(df, rootDir, combineControls=False, dropNans=False):
     df = df.assign(DeltaPercentTimeSpent_P01 = pd.Series(list_of_delta_per_time_spent_P01, index=df.index),
                    DeltaPercentTimeSpent_P10 = pd.Series(list_of_delta_per_time_spent_P10, index=df.index))
 
-    df = df.assign(DeltaPercentTimeSpent_Mean = pd.Series(df[['DeltaPerTimeSpent_P01','DeltaPerTimeSpent_P10']].mean(axis=1), index=df.index))
+    df = df.assign(DeltaPercentTimeSpent_Mean = pd.Series(df[['DeltaPercentTimeSpent_P01','DeltaPercentTimeSpent_P10']].mean(axis=1), index=df.index))
     plotTheMetric(df,'DeltaPercentTimeSpent',rootDir,combineControls,dropNans)
-    return df
+    return None
 
 
 # ## Metric: Speed crossing inside
 
-# In[408]:
+# In[39]:
 
 
 #NTS: CHANGE to SMOOTHED HEADX
@@ -1151,8 +1124,8 @@ def SpeedCrossingInside(df, rootDir, combineControls=False, dropNans=False):
         end_of_P10 = df['LightON index|P10'][fly][1]
 
         ## get the head X positions during the epochs
-        headX_during_P01 = df['HeadX(pix)'][fly][start_of_P01:end_of_P01]
-        headX_during_P10 = df['HeadX(pix)'][fly][start_of_P10:end_of_P10]
+        headX_during_P01 = df['HeadX(pix)_smoothed'][fly][start_of_P01:end_of_P01]
+        headX_during_P10 = df['HeadX(pix)_smoothed'][fly][start_of_P10:end_of_P10]
 
         ## get the border corrdinates
         border_P01 = df['Border|P01'][fly]
@@ -1207,12 +1180,12 @@ def SpeedCrossingInside(df, rootDir, combineControls=False, dropNans=False):
     df = df.assign(SpeedCrossingInside_Mean = pd.Series(df[['SpeedCrossingInside_P01','SpeedCrossingInside_P10']].mean(axis=1), index=df.index))
     plotTheMetric(df,'SpeedCrossingInside',rootDir,combineControls,dropNans)
     
-    return df
+    return None
 
 
 # ## Metric: Speed crossing outside
 
-# In[410]:
+# In[40]:
 
 
 #NTS: CHANGE to SMOOTHED HEADX
@@ -1246,8 +1219,8 @@ def SpeedCrossingOutside(df, rootDir, combineControls=False, dropNans=False):
         end_of_P10 = df['LightON index|P10'][fly][1]
 
         ## get the head X positions during the epochs
-        headX_during_P01 = df['HeadX(pix)'][fly][start_of_P01:end_of_P01]
-        headX_during_P10 = df['HeadX(pix)'][fly][start_of_P10:end_of_P10]
+        headX_during_P01 = df['HeadX(pix)_smoothed'][fly][start_of_P01:end_of_P01]
+        headX_during_P10 = df['HeadX(pix)_smoothed'][fly][start_of_P10:end_of_P10]
 
         ## get the border corrdinates
         border_P01 = df['Border|P01'][fly]
@@ -1302,17 +1275,16 @@ def SpeedCrossingOutside(df, rootDir, combineControls=False, dropNans=False):
     df = df.assign(SpeedCrossingOutside_Mean = pd.Series(df[['SpeedCrossingOutside_P01','SpeedCrossingOutside_P10']].mean(axis=1), index=df.index))
     plotTheMetric(df,'SpeedCrossingOutside',rootDir,combineControls,dropNans)
     
-    return df
+    return None
 
 
 # ## Metric Queue
 # 
-# ### Speed crossing to the light and crossing to the dark
 # ### Stop probability
 
 # ## Track Visualization
 
-# In[299]:
+# In[ ]:
 
 
 ## Plot a single fly's trajectory as well as first light contacts.
@@ -1383,7 +1355,7 @@ def VisualizeSingleFlyTrajectory(df,flyiLoc,mark =False, smoothHeadX = False, sp
     return None
 
 
-# In[416]:
+# In[ ]:
 
 
 flyiLoc = 25
@@ -1392,7 +1364,7 @@ VisualizeSingleFlyTrajectory(dd, flyiLoc=flyiLoc,mark = False, smoothHeadX=False
 # plt.show()
 
 
-# In[213]:
+# In[ ]:
 
 
 def VisualizeGroupsOfData(group,data,counter,numOfGroups,axs,individualFlies,durationAfterEntrance_frames,ylim):
@@ -1588,7 +1560,7 @@ def VisualizeTheChoiceZoneTrajectories(df, individualFlies = None, groupBy = Non
     return None
 
 
-# In[224]:
+# In[ ]:
 
 
 VisualizeTheChoiceZoneTrajectories(d, individualFlies = [5,6], groupBy = 'Genotype', groupsToPlot = None,
@@ -1596,20 +1568,20 @@ VisualizeTheChoiceZoneTrajectories(d, individualFlies = [5,6], groupBy = 'Genoty
                                    wspace = .3, ylim = [80,90])
 
 
-# In[221]:
+# In[ ]:
 
 
 d['FromTheClosedEnd_P01_EnterIdx_ExitIdx_EnterHeadX_ExitHeadX'][5]
 
 
-# In[225]:
+# In[ ]:
 
 
 d['ChoiceZoneBordersperFly_P01'][5]
 ChoiceZoneBorders_P01 = d['ChoiceZoneBordersperFly_P01'][5]
 
 
-# In[226]:
+# In[ ]:
 
 
 x = d['HeadX(pix)'][5][1045:1075]
@@ -1623,7 +1595,7 @@ ax1.plot(range(len(x)), x, color='black')
 
 # ## Plot any given metric
 
-# In[170]:
+# In[84]:
 
 
 def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
@@ -1660,7 +1632,7 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
     listofSatiety = df['Satiety'].unique()
     listofWindStat = df['Wind status'].unique()
     listofGenotypes = df['Genotype'].unique()
-    
+        
     ## if combineControls is true, then status-based df, else genotype-based.
     if combineControls == True:
         
@@ -1692,7 +1664,7 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                                                                   )
                     savePath = rootDir + '/' + metric + '/P01/'
                     saveFileName = metricForFileName + '_P01_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                    plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
+                    plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
                     b.to_csv(savePath + saveFileName + '.csv')
                     
                     ## close the figures to save memory
@@ -1709,8 +1681,9 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                                                                   )
                     savePath = rootDir + '/' + metric + '/P10/'
                     saveFileName = metricForFileName + '_P10_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                    plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
+                    plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
                     b.to_csv(savePath + saveFileName + '.csv')
+                                               
                     plt.close(fig)
                     plt.clf()
 
@@ -1724,7 +1697,7 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                                                                   )
                     savePath = rootDir + '/' + metric + '/Mean/'
                     saveFileName = metricForFileName + '_Mean_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                    plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
+                    plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
                     b.to_csv(savePath + saveFileName + '.csv')
                     plt.close(fig)
                     plt.clf()
@@ -1823,14 +1796,12 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                     ## close the figures to save memory
                     plt.close(fig)
                     plt.clf()
-    
     return None
-
 
 
 # ## Execute
 
-# In[2]:
+# In[1]:
 
 
 import os
@@ -1840,9 +1811,9 @@ from scipy import stats
 import scipy as sp
 import numpy as np
 import datetime as dt
+# %matplotlib inline
 import matplotlib
-matplotlib.use('Agg')
-get_ipython().magic('matplotlib inline')
+# matplotlib.use('Agg')
 # %matplotlib notebook
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -1859,20 +1830,20 @@ import progressbar
 # d, t = WALiMe(rootDir=rootDir, metrics = ['TSALE'])
 
 
-# In[3]:
+# In[44]:
 
 
 df = pd.read_pickle('C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a/RawDataFrame.pkl')
 
 
-# In[4]:
+# In[45]:
 
 
 # df = df.copy(deep=True)
 df['Light Intensity(uW/mm2)'] = df['Light Intensity(uW/mm2)'].str[3:-9]
 
 
-# In[5]:
+# In[46]:
 
 
 df = df.assign(Status_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Status'] + '_' + df['Sex'] + '_' +
@@ -1880,23 +1851,333 @@ df = df.assign(Status_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Statu
              df['Wind status'], index = df.index))  
 
 
-# In[411]:
+# In[115]:
 
 
-# TSALE(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
-# LaXS(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', combineControls=False)
-# weighted_TSALE(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=True, combineControls=True)
-# LAI(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
-# RPI(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
-# NoBC(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
-# Log2SpeedRation(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
-# DeltaPercentTimeSpent(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
-# SpeedCrossingInside(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
-SpeedCrossingOutside(df, rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a', dropNans=False, combineControls=True)
+def WALiMe(rootDirectory):
+    
+    ## Get a list of ORNs in the folder
+    ornList = os.listdir(rootDirectory)
+        
+    
+    for ORN in ornList:
+        ## read the data in a df
+        print '%s is in progress...' %(ORN)
+
+        rootDir = os.path.join(rootDirectory,ORN)
+        fileList = os.listdir(rootDir)
+        
+        if 'RawDataFrame.pkl' in fileList:
+            df = pd.read_pickle(rootDir + '/RawDataFrame.pkl')
+        else:
+            df = dataToDataframe(rootDir)
+        ## FIX THIS SHIT
+        df['Light Intensity(uW/mm2)'] = df['Light Intensity(uW/mm2)'].str[3:-9]
+
+        ## apply the metrics
+        LaXS(df, rootDir, dropNans=False, combineControls=True)
+        TSALE(df, rootDir, dropNans=False, combineControls=True)
+        weighted_TSALE(df, rootDir, dropNans=False, combineControls=True)
+        LAI(df, rootDir, dropNans=False, combineControls=True)
+        RPI(df, rootDir, dropNans=False, combineControls=True)
+        DeltaPercentTimeSpent(df, rootDir, dropNans=False, combineControls=True)
+        Log2SpeedRatio(df, rootDir, dropNans=False, combineControls=True)
+        SpeedCrossingInside(df, rootDir, dropNans=False, combineControls=True)
+        SpeedCrossingOutside(df, rootDir, dropNans=False, combineControls=True)
+        NoBC(df, rootDir, dropNans=False, combineControls=True)
+    
+    return df
 
 
-# In[349]:
+# ### Execute
+
+# In[86]:
 
 
-ddf.iloc[10]
+import os
+import seaborn as sns
+import pandas as pd
+from scipy import stats
+import scipy as sp
+import numpy as np
+import datetime as dt
+# %matplotlib inline
+import matplotlib
+# matplotlib.use('Agg')
+# %matplotlib notebook
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
+from itertools import groupby
+from operator import itemgetter
+import bootstrap_contrast as bs
+from nptdms import *
+import math
+from collections import Counter
+import shutil
+import progressbar
+from svgutils.compose import *
+
+rootDirectory = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/'
+d = WALiMe(rootDirectory)
+
+
+# ## Combine SVG images of all metrics in one
+
+# In[113]:
+
+
+
+rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/'
+ornList = os.listdir(rootDir)
+    
+epoch_to_combine = 'P10'
+
+def combineSVGImages(rootDir,epoch_to_combine):
+    
+    for ORN in ornList:
+        rootDir = os.path.join(rootDir,ORN)
+
+        ## Page 1
+        Figure("59.4cm", "84.1cm", 
+               ## LaxS images
+            Panel(
+                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  Text("A", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
+                 ),
+            Panel(
+                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 0),
+            Panel(
+                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 21)
+            Panel(
+                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 21)
+
+                ## TSALE images
+
+            Panel(
+                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  Text("C", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 42),
+            Panel(
+                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  Text("D", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 42),
+            Panel(
+                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 63)
+            Panel(
+                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 63)).save(rootDir+"/Metrics_Combined_p1" + epoch_to_combine + ".svg")
+
+
+        ## Page 2
+
+        Figure("59.4cm", "84.1cm", 
+               ## weighted TSALE images
+            Panel(
+                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  Text("A", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
+                 ),
+            Panel(
+                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 0),
+            Panel(
+                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 21)
+            Panel(
+                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 21)
+
+                ## Light Attraction Index images
+
+            Panel(
+                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  Text("C", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 42),
+            Panel(
+                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  Text("D", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 42),
+            Panel(
+                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 63)
+            Panel(
+                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 63)).save(rootDir+"/Metrics_Combined_p2" + epoch_to_combine + ".svg")
+
+        ## Page 3
+
+        Figure("59.4cm", "84.1cm", 
+               ## Reversal PI images
+            Panel(
+                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  Text("A", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
+                 ),
+            Panel(
+                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 0),
+            Panel(
+                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 21)
+            Panel(
+                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 21)
+
+                ## DeltaPercentTimeSpent images
+
+            Panel(
+                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  Text("C", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 42),
+            Panel(
+                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  Text("D", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 42),
+            Panel(
+                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 63)
+            Panel(
+                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 63)).save(rootDir+"/Metrics_Combined_p3" + epoch_to_combine + ".svg")
+
+        ## Page 4
+
+        Figure("59.4cm", "84.1cm", 
+               ## Log2SpeedRatio images
+            Panel(
+                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  Text("A", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
+                 ),
+            Panel(
+                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 0),
+            Panel(
+                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 21)
+            Panel(
+                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 21)
+
+                ## SpeedCrossingInside images
+
+            Panel(
+                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  Text("C", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 42),
+            Panel(
+                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  Text("D", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 42),
+            Panel(
+                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 63)
+            Panel(
+                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 63)).save(rootDir+"/Metrics_Combined_p4" + epoch_to_combine + ".svg")
+
+        ## Page 5
+
+        Figure("59.4cm", "84.1cm", 
+               ## SpeedCrossingOutside images
+            Panel(
+                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  Text("A", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
+                 ),
+            Panel(
+                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 0),
+            Panel(
+                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 21)
+            Panel(
+                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 21)
+
+                ## NoBC images
+
+            Panel(
+                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  Text("C", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 42),
+            Panel(
+                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  Text("D", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 42),
+            Panel(
+                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
+                 ).move(0, 63)
+            Panel(
+                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
+                  Text("B", 3, 1, size=1, weight='bold'),
+                  Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
+                 ).move(26.5, 63)).save(rootDir+"/Metrics_Combined_p5" + epoch_to_combine + ".svg")
+    return None
+    
+    
+            
 
