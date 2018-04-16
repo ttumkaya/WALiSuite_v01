@@ -3,7 +3,7 @@
 
 # ## Crawl in the directory, load data in
 
-# In[41]:
+# In[ ]:
 
 
 ## The InLight col we have in the count csv files and count tab in the tdms file is based on cX data. Meaning that we're doing
@@ -46,10 +46,12 @@ def detectFPS(timeStamps):
 def dataToDataframe(rootDir):
         
     ## Generate a single dataframe from the .tdms and pattern files 
-    temp = {'Tdms file name':[],'Date':[],'Time':[],'mmPerPix':[],'fps':[],'Light type':[],'Light Intensity(uW/mm2)':[],'Wind status':[],
+    temp = {'Tdms file name':[],'Date':[],'Time':[],'mmPerPix':[],'fps':[],'Light Intensity(uW/mm2)':[],'Wind status':[],
             'Satiety':[],'Genotype':[],'Sex':[],'Status':[],'Fly ID':[],'cX(pix)':[],'HeadX(pix)':[],'HeadX(pix)_smoothed':[],
             'HeadY(pix)':[], 'InLight':[],'InLight_HeadX|P01':[],'InLight_HeadX|P10':[],'First light contact index_of_the_whole_data|P01':[],'First light contact index_of_the_whole_data|P10':[],
             'LightON index|P01':[],'First light contact index in P01':[],'First light contact index in P10':[],'LightON index|P10':[],'Border|P01':[],'Border|P10':[]}
+    
+    # Removed 'Light type':[], since all constant
     
     slidingWindowSizeinframes = 25
     numOfTdmsFiles = 0
@@ -62,7 +64,7 @@ def dataToDataframe(rootDir):
             numOfTdmsFiles += 1
             ## Open the tdms file
             f = TdmsFile(os.path.join(rootDir,fname))
-
+            
             ## Load the tdms into a pandas df
             TDMSdf = f.as_dataframe()
 
@@ -83,12 +85,12 @@ def dataToDataframe(rootDir):
             tdmsNameNoExtension = tdmsNameNoExtension.split('_')
             date = tdmsNameNoExtension[1]
             time = tdmsNameNoExtension[2]
-            genotype = tdmsNameNoExtension[3]
+            genotype = tdmsNameNoExtension[3][3:]
             sex = tdmsNameNoExtension[4]
-            intensity = tdmsNameNoExtension[5] + '_' + tdmsNameNoExtension[6]
-            lightType = 'Constant'
-            windState = tdmsNameNoExtension[7]
-            satiety = tdmsNameNoExtension[8]
+            intensity = tdmsNameNoExtension[5]
+#             lightType = 'Constant'
+            windState = tdmsNameNoExtension[6]
+            satiety = tdmsNameNoExtension[7]
 
             ## Get the mm per pixel coefficient
             metaData = f.object().properties
@@ -187,7 +189,7 @@ def dataToDataframe(rootDir):
                 temp['Time'].append(time)
                 temp['mmPerPix'].append(mmPerPix)
                 temp['fps'].append(fps)
-                temp['Light type'].append(lightType)
+#                 temp['Light type'].append(lightType)
                 temp['Light Intensity(uW/mm2)'].append(intensity)
                 temp['Wind status'].append(windState)
                 temp['Satiety'].append(satiety)
@@ -202,7 +204,7 @@ def dataToDataframe(rootDir):
                 temp['InLight_HeadX|P10'].append(InLightBasedOnHeadX_P10)
 
     ## Convert temp into a df
-    colOrder = ['Tdms file name','Date','Time','mmPerPix','fps','Light type','Light Intensity(uW/mm2)','Wind status',
+    colOrder = ['Tdms file name','Date','Time','mmPerPix','fps','Light Intensity(uW/mm2)','Wind status',
                 'Satiety','Genotype','Sex','Status','Fly ID','cX(pix)','HeadX(pix)','HeadX(pix)_smoothed','HeadY(pix)',
                 'InLight','InLight_HeadX|P01','InLight_HeadX|P10','First light contact index_of_the_whole_data|P01','First light contact index_of_the_whole_data|P10',
                 'LightON index|P01','First light contact index in P01','First light contact index in P10','LightON index|P10','Border|P01','Border|P10']
@@ -217,7 +219,7 @@ def dataToDataframe(rootDir):
 
 # ## Metric: LaXS
 
-# In[25]:
+# In[ ]:
 
 
 ## Usual PI calculation, called by
@@ -267,7 +269,7 @@ def LaXS(df, rootDir, Xsec = 30, combineControls=False, dropNans = False):
 
 # ## Metric: TSALE
 
-# In[24]:
+# In[ ]:
 
 
 def TSALE(df, rootDir, combineControls=False, dropNans=False):
@@ -335,7 +337,7 @@ def TSALE(df, rootDir, combineControls=False, dropNans=False):
     else:
         plotTheMetric(df,'TSALE',rootDir,combineControls,dropNans)
     
-        return df
+    return df
 
 ## Nans in the PreferenceIndex_P01 (and P10) columns are treated as not existing in the plotting;
 ## therefore, when I am getting the mean of the two columns, I can't treat them as zeroes. 
@@ -352,12 +354,12 @@ def MeanPreferenceIndexNoNANs(df):
 
 # ## Metric: weighted-TSALE
 
-# In[26]:
+# In[ ]:
 
 
 def weighted_TSALE(dff, rootDir,combineControls=False, dropNans=False):
     
-    df = TSALE(dff, rootDir, dropNans, combineControls)
+    df = TSALE(dff, rootDir, combineControls, dropNans)
     ## empty lists to store the weights for both epochs
     weights_P01 = []
     weights_P10 = []
@@ -400,7 +402,7 @@ def weighted_TSALE(dff, rootDir,combineControls=False, dropNans=False):
 
 # ## Metric: Light attraction index
 
-# In[35]:
+# In[ ]:
 
 
 ## Function 1: Detect choice zone entrance/exits indices, store them in the df
@@ -648,7 +650,7 @@ def LAI(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metrix: Reversal PI
 
-# In[28]:
+# In[ ]:
 
 
 def RPI(df, rootDir, combineControls=False, dropNans=False):
@@ -741,7 +743,7 @@ def RPI(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Number of Border Crossings
 
-# In[36]:
+# In[ ]:
 
 
 ### NTS: fix this to SMOOTHED HEAD X!!
@@ -809,7 +811,7 @@ def NoBC(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Speed ratio
 
-# In[114]:
+# In[ ]:
 
 
 ### NTS: convert HeadX to SMOOTHED HEADX
@@ -1002,7 +1004,7 @@ def Log2SpeedRatio(df ,rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Delta Time Spent Before and During Light
 
-# In[38]:
+# In[ ]:
 
 
 def calculatePercentageTimeSpent(data, total_epoch_time):
@@ -1064,7 +1066,7 @@ def DeltaPercentTimeSpent(df, rootDir, combineControls=False, dropNans=False):
         for i in range(len(during_the_light_P10_headX)):
             if during_the_light_P10_headX[i] < border_P10:
                 during_the_light_P10_headX_temp.append(i)
-
+                
         ## calculate the percentage of the time spent in the region of interest
         before_the_light_P01_perTimeSpent = calculatePercentageTimeSpent(before_the_light_P01_headX_temp, len(before_the_light_P01_headX))
         during_the_light_P01_perTimeSpent = calculatePercentageTimeSpent(during_the_light_P01_headX_temp, len(during_the_light_P01_headX))
@@ -1090,10 +1092,9 @@ def DeltaPercentTimeSpent(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Speed crossing inside
 
-# In[39]:
+# In[ ]:
 
 
-#NTS: CHANGE to SMOOTHED HEADX
 def calculateAcuteSpeed(data, crossing_idx, fps, mmPerPix, length_sec=3):
     sec_to_frames = length_sec * fps
     crossing_phase = data[crossing_idx:crossing_idx+sec_to_frames]
@@ -1185,10 +1186,9 @@ def SpeedCrossingInside(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Speed crossing outside
 
-# In[40]:
+# In[ ]:
 
 
-#NTS: CHANGE to SMOOTHED HEADX
 def calculateAcuteSpeed(data, crossing_idx, fps, mmPerPix, length_sec=3):
     sec_to_frames = length_sec * fps
     crossing_phase = data[crossing_idx:crossing_idx+sec_to_frames]
@@ -1281,6 +1281,7 @@ def SpeedCrossingOutside(df, rootDir, combineControls=False, dropNans=False):
 # ## Metric Queue
 # 
 # ### Stop probability
+# ### Velocity crossing in and out of the odor zone
 
 # ## Track Visualization
 
@@ -1595,7 +1596,7 @@ ax1.plot(range(len(x)), x, color='black')
 
 # ## Plot any given metric
 
-# In[84]:
+# In[ ]:
 
 
 def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
@@ -1636,9 +1637,10 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
     ## if combineControls is true, then status-based df, else genotype-based.
     if combineControls == True:
         
+        df.loc[df['Light Intensity(uW/mm2)'] == ")70u" ,"Light Intensity(uW/mm2)"] = "70uW"
         ## make the columns to classify data points  (status-based in this case)
-        df = df.assign(Status_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Status'] + '_' + df['Sex'] + '_' +
-             df['Satiety'] + '_' + df['Light type'] + '_' + df['Light Intensity(uW/mm2)'] + '_' +
+        df = df.assign(Status_Sex_Satiety_Intensity_Wind = pd.Series(df['Status'] + '_' + df['Sex'] + '_' +
+             df['Satiety'] + '_' + df['Light Intensity(uW/mm2)'] + '_' +
              df['Wind status'], index = df.index))  
         
         ## going to generate plots for each of the combination of these three condition, i.e, male_fed__NoAir
@@ -1653,59 +1655,65 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                         metricForFileName = metric + '_CombinedControls'
                     elif dropNans == True:
                         metricForFileName = metric + '_CombinedControls_NansDropped'
-                        
-                    ## P01 of the metric
-                    fig,b = bs.contrastplot(df, x = 'Status_Sex_Satiety_LightType_Intensity_Wind', y = metric+'_P01' ,
-                            color_col= 'Genotype', custom_palette = myPal,  float_contrast=False,                     
-                          idx = (
-                                 ('Parent_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat)),
-                                 ('Parent_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat)),
-                                 ('Parent_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_'+ str(windStat)))
-                                                                  )
-                    savePath = rootDir + '/' + metric + '/P01/'
-                    saveFileName = metricForFileName + '_P01_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                    plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
-                    b.to_csv(savePath + saveFileName + '.csv')
                     
-                    ## close the figures to save memory
-                    plt.close(fig)
-                    plt.clf()
+                    try:
+                        ## P01 of the metric
+                        fig,b = bs.contrastplot(df, x = 'Status_Sex_Satiety_Intensity_Wind', y = metric+'_P01' ,
+                                color_col= 'Genotype', custom_palette = myPal,  float_contrast=False,                     
+                              idx = (
+                                     ('Parent_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
+                                     ('Parent_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
+                                     ('Parent_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_70uW_'+ str(windStat)))
+                                                                      )
+                        savePath = rootDir + '/' + metric + '/P01/'
+                        saveFileName = metricForFileName + '_P01_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                        plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                        b.to_csv(savePath + saveFileName + '.csv')
 
-                    ## P10 of the metric
-                    fig,b = bs.contrastplot(df, x = 'Status_Sex_Satiety_LightType_Intensity_Wind', y = metric+'_P10' ,
-                            color_col= 'Genotype', custom_palette = myPal,  float_contrast=False,                     
-                          idx = (
-                                 ('Parent_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat)),
-                                 ('Parent_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat)),
-                                 ('Parent_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_'+ str(windStat)))
-                                                                  )
-                    savePath = rootDir + '/' + metric + '/P10/'
-                    saveFileName = metricForFileName + '_P10_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                    plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
-                    b.to_csv(savePath + saveFileName + '.csv')
-                                               
-                    plt.close(fig)
-                    plt.clf()
+                        ## close the figures to save memory
+                        plt.close(fig)
+                        plt.clf()
 
-                    ## Mean of the metric
-                    fig,b = bs.contrastplot(df, x = 'Status_Sex_Satiety_LightType_Intensity_Wind', y = metric+'_Mean' ,
-                            color_col= 'Genotype', custom_palette = myPal, float_contrast=False,                     
-                          idx = (
-                                 ('Parent_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat)),
-                                 ('Parent_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat)),
-                                 ('Parent_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_'+ str(windStat)))
-                                                                  )
-                    savePath = rootDir + '/' + metric + '/Mean/'
-                    saveFileName = metricForFileName + '_Mean_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                    plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
-                    b.to_csv(savePath + saveFileName + '.csv')
-                    plt.close(fig)
-                    plt.clf()
-    
+                        ## P10 of the metric
+                        fig,b = bs.contrastplot(df, x = 'Status_Sex_Satiety_Intensity_Wind', y = metric+'_P10' ,
+                                color_col= 'Genotype', custom_palette = myPal,  float_contrast=False,                     
+                              idx = (
+                                     ('Parent_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
+                                     ('Parent_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
+                                     ('Parent_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_70uW_'+ str(windStat)))
+                                                                      )
+                        savePath = rootDir + '/' + metric + '/P10/'
+                        saveFileName = metricForFileName + '_P10_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                        plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                        b.to_csv(savePath + saveFileName + '.csv')
+
+                        plt.close(fig)
+                        plt.clf()
+
+                        ## Mean of the metric
+                        fig,b = bs.contrastplot(df, x = 'Status_Sex_Satiety_Intensity_Wind', y = metric+'_Mean' ,
+                                color_col= 'Genotype', custom_palette = myPal, float_contrast=False,                     
+                              idx = (
+                                     ('Parent_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
+                                     ('Parent_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
+                                     ('Parent_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_70uW_'+ str(windStat)))
+                                                                      )
+                        savePath = rootDir + '/' + metric + '/Mean/'
+                        saveFileName = metricForFileName + '_Mean_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                        plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                        b.to_csv(savePath + saveFileName + '.csv')
+                        plt.close(fig)
+                        plt.clf()
+                    except:
+                        
+                        print "Not available %s" % (str(sex) + '_' + str(satietyStat) + '_' + str(windStat))
     elif combineControls == False:  
+        
+        df.loc[df['Light Intensity(uW/mm2)'] == ")70u" ,"Light Intensity(uW/mm2)"] = "70uW"
+        
         ## generate the columns to callsify the data points, this time genotype-based
-        df = df.assign(Genotype_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Genotype'] + '_' + df['Sex'] + '_' +
-             df['Satiety'] + '_' + df['Light type'] + '_' + df['Light Intensity(uW/mm2)'] + '_' +
+        df = df.assign(Genotype_Sex_Satiety_Intensity_Wind = pd.Series(df['Genotype'] + '_' + df['Sex'] + '_' +
+             df['Satiety'] + '_'  + df['Light Intensity(uW/mm2)'] + '_' +
              df['Wind status'], index = df.index))
         
         ## going to generate plots for each of the combination of these three condition, i.e, male_fed__NoAir
@@ -1720,88 +1728,91 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                         metricForFileName = metric
                     elif dropNans == True:
                         metricForFileName = metric + '_NansDropped'
-                        
-                    ## P01 of the metric
-                    fig,b = bs.contrastplot(df, x = 'Genotype_Sex_Satiety_LightType_Intensity_Wind', y = metric+'_P01' ,
-                            color_col= 'Genotype', custom_palette = myPal,                      
-                          idx = (
-                                 (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat), 
-                                  str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat),
-                                  str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat)),
-                              
-                                  (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat), 
-                                  str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat),
-                                  str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat)),
-                                  
-                                  (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat), 
-                                  str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat),
-                                  str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat))))
-                        
-                    savePath = rootDir + '/' + metric + '/P01/'
-                    saveFileName = metricForFileName + '_P01_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                    plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
-                    b.to_csv(savePath + saveFileName + '.csv')
-                    
-                    ## close the figures to save memory
-                    plt.close(fig)
-                    plt.clf()
+                    try:   
+                        ## P01 of the metric
+                        fig,b = bs.contrastplot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P01' ,
+                                color_col= 'Genotype', custom_palette = myPal,                      
+                              idx = (
+                                     (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
+                                      str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                      str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
 
-                    
-                    ## P10 of the metric
-                    fig,b = bs.contrastplot(df, x = 'Genotype_Sex_Satiety_LightType_Intensity_Wind', y = metric+'_P10' ,
-                            color_col= 'Genotype', custom_palette = myPal,                      
-                          idx = (
-                                 (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat), 
-                                  str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat),
-                                  str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat)),
-                              
-                                  (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat), 
-                                  str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat),
-                                  str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat)),
-                                  
-                                  (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat), 
-                                  str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat),
-                                  str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat))))
+                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
+                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
+
+                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
+                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
+
+                        savePath = rootDir + '/' + metric + '/P01/'
+                        saveFileName = metricForFileName + '_P01_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                        plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
+                        b.to_csv(savePath + saveFileName + '.csv')
+
+                        ## close the figures to save memory
+                        plt.close(fig)
+                        plt.clf()
+
+
+                        ## P10 of the metric
+                        fig,b = bs.contrastplot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P10' ,
+                                color_col= 'Genotype', custom_palette = myPal,                      
+                              idx = (
+                                     (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
+                                      str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                      str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
+
+                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
+                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
+
+                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
+                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
+
+                        savePath = rootDir + '/' + metric + '/P10/'
+                        saveFileName = metricForFileName + '_P10_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                        plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
+                        b.to_csv(savePath + saveFileName + '.csv')
+
+                        ## close the figures to save memory
+                        plt.close(fig)
+                        plt.clf()
+
+                        ## Mean of the metric
+                        fig,b = bs.contrastplot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_Mean' ,
+                                color_col= 'Genotype', custom_palette = myPal,                      
+                              idx = (
+                                     (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
+                                      str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                      str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
+
+                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
+                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
+
+                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
+                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
+
+                        savePath = rootDir + '/' + metric + '/Mean/'
+                        saveFileName = metricForFileName + '_Mean_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                        plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
+                        b.to_csv(savePath + saveFileName + '.csv')
+
+                        ## close the figures to save memory
+                        plt.close(fig)
+                        plt.clf()
+                    except:
                         
-                    savePath = rootDir + '/' + metric + '/P10/'
-                    saveFileName = metricForFileName + '_P10_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                    plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
-                    b.to_csv(savePath + saveFileName + '.csv')
-                    
-                    ## close the figures to save memory
-                    plt.close(fig)
-                    plt.clf()
-                    
-                    ## Mean of the metric
-                    fig,b = bs.contrastplot(df, x = 'Genotype_Sex_Satiety_LightType_Intensity_Wind', y = metric+'_Mean' ,
-                            color_col= 'Genotype', custom_palette = myPal,                      
-                          idx = (
-                                 (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat), 
-                                  str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat),
-                                  str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_14uW_' + str(windStat)),
-                              
-                                  (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat), 
-                                  str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat),
-                                  str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_42uW_' + str(windStat)),
-                                  
-                                  (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat), 
-                                  str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat),
-                                  str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_Constant_70uW_' + str(windStat))))
-                        
-                    savePath = rootDir + '/' + metric + '/Mean/'
-                    saveFileName = metricForFileName + '_Mean_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                    plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
-                    b.to_csv(savePath + saveFileName + '.csv')
-                    
-                    ## close the figures to save memory
-                    plt.close(fig)
-                    plt.clf()
+                        print "Not available %s" % (str(sex) + '_' + str(satietyStat) + '_' + str(windStat))
     return None
 
 
 # ## Execute
 
-# In[1]:
+# In[ ]:
 
 
 import os
@@ -1830,20 +1841,20 @@ import progressbar
 # d, t = WALiMe(rootDir=rootDir, metrics = ['TSALE'])
 
 
-# In[44]:
+# In[ ]:
 
 
 df = pd.read_pickle('C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a/RawDataFrame.pkl')
 
 
-# In[45]:
+# In[ ]:
 
 
 # df = df.copy(deep=True)
 df['Light Intensity(uW/mm2)'] = df['Light Intensity(uW/mm2)'].str[3:-9]
 
 
-# In[46]:
+# In[ ]:
 
 
 df = df.assign(Status_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Status'] + '_' + df['Sex'] + '_' +
@@ -1851,47 +1862,90 @@ df = df.assign(Status_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Statu
              df['Wind status'], index = df.index))  
 
 
-# In[115]:
+# In[ ]:
 
 
-def WALiMe(rootDirectory):
+def WALiMe(rootDirectory, pickORN=False):
     
-    ## Get a list of ORNs in the folder
-    ornList = os.listdir(rootDirectory)
-        
-    
-    for ORN in ornList:
-        ## read the data in a df
+    if pickORN == False:
+        ## Get a list of ORNs in the folder
+        ornList = os.listdir(rootDirectory)
+
+        for i in range(len(ornList)):
+            ## read the data in a df
+            ORN = ornList[i]
+            
+            print '%s is in progress...' %(ORN)
+
+            rootDir = os.path.join(rootDirectory,ORN)
+            fileList = os.listdir(rootDir)
+
+            if 'RawDataFrame.pkl' in fileList:
+                df = pd.read_pickle(rootDir + '/RawDataFrame.pkl')
+            else:
+                df = dataToDataframe(rootDir)
+
+            ## apply the metrics
+            LaXS(df, rootDir, combineControls=True, dropNans=False)
+            TSALE(df, rootDir, combineControls=True, dropNans=False)
+            weighted_TSALE(df, rootDir, combineControls=True, dropNans=False)
+            LAI(df, rootDir, combineControls=True, dropNans=False)
+
+            try:
+                RPI(df, rootDir, combineControls=True, dropNans=False)
+            except:
+                print "Did not calculate RPI for some errors in mannwhitney stats for ORN %s" %(ORN)
+
+            DeltaPercentTimeSpent(df, rootDir, combineControls=True, dropNans=False)
+            Log2SpeedRatio(df, rootDir, combineControls=True, dropNans=False)
+            SpeedCrossingInside(df, rootDir, combineControls=True, dropNans=False)
+            SpeedCrossingOutside(df, rootDir, combineControls=True, dropNans=False)
+            NoBC(df, rootDir, combineControls=True, dropNans=False)
+    else:
+        ORN = pickORN
+            
         print '%s is in progress...' %(ORN)
 
         rootDir = os.path.join(rootDirectory,ORN)
         fileList = os.listdir(rootDir)
-        
+
         if 'RawDataFrame.pkl' in fileList:
             df = pd.read_pickle(rootDir + '/RawDataFrame.pkl')
         else:
             df = dataToDataframe(rootDir)
-        ## FIX THIS SHIT
-        df['Light Intensity(uW/mm2)'] = df['Light Intensity(uW/mm2)'].str[3:-9]
 
         ## apply the metrics
-        LaXS(df, rootDir, dropNans=False, combineControls=True)
-        TSALE(df, rootDir, dropNans=False, combineControls=True)
-        weighted_TSALE(df, rootDir, dropNans=False, combineControls=True)
-        LAI(df, rootDir, dropNans=False, combineControls=True)
-        RPI(df, rootDir, dropNans=False, combineControls=True)
-        DeltaPercentTimeSpent(df, rootDir, dropNans=False, combineControls=True)
-        Log2SpeedRatio(df, rootDir, dropNans=False, combineControls=True)
-        SpeedCrossingInside(df, rootDir, dropNans=False, combineControls=True)
-        SpeedCrossingOutside(df, rootDir, dropNans=False, combineControls=True)
-        NoBC(df, rootDir, dropNans=False, combineControls=True)
-    
+        LaXS(df, rootDir, combineControls=True, dropNans=False)
+        TSALE(df, rootDir, combineControls=True, dropNans=False)
+        weighted_TSALE(df, rootDir, combineControls=True, dropNans=False)
+        LAI(df, rootDir, combineControls=True, dropNans=False)
+
+        try:
+            RPI(df, rootDir, combineControls=True, dropNans=False)
+        except:
+            print "Did not calculate RPI for some errors in mannwhitney stats for ORN %s" %(ORN)
+
+        DeltaPercentTimeSpent(df, rootDir, combineControls=True, dropNans=False)
+        Log2SpeedRatio(df, rootDir, combineControls=True, dropNans=False)
+        SpeedCrossingInside(df, rootDir, combineControls=True, dropNans=False)
+        SpeedCrossingOutside(df, rootDir, combineControls=True, dropNans=False)
+        NoBC(df, rootDir, combineControls=True, dropNans=False)
+
     return df
+
+
+# In[ ]:
+
+
+import os
+rootDirectory = "C:/Users/tumkayat/Desktop/ORScreening/WALiSAR_all_ORNs/Or49a/"
+ornList = os.listdir(rootDirectory)
+ornList
 
 
 # ### Execute
 
-# In[86]:
+# In[ ]:
 
 
 import os
@@ -1917,70 +1971,90 @@ import shutil
 import progressbar
 from svgutils.compose import *
 
-rootDirectory = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/'
+rootDirectory = "C:/Users/tumkayat/Desktop/ORScreening/WALiSAR_all_ORNs/"
 d = WALiMe(rootDirectory)
+
+
+# In[ ]:
+
+
+df = pd.read_pickle('C:/Users/tumkayat/Desktop/ORScreening/WALiSAR_all_ORNs/Or43a/RawDataFrame.pkl')
+
+
+# In[ ]:
+
+
+df.loc[df['Light Intensity(uW/mm2)'] == ")70u" ,"Light Intensity(uW/mm2)"] = "70uW"
+
+
+# In[ ]:
+
+
+df = df.assign(Status_Sex_Satiety_Intensity_Wind = pd.Series(df['Status'] + '_' + df['Sex'] + '_' +
+             df['Satiety'] + '_' + df['Light Intensity(uW/mm2)'] + '_' +
+             df['Wind status'], index = df.index))
+
+
+# In[ ]:
+
+
+list(df['Status_Sex_Satiety_Intensity_Wind'].unique())
 
 
 # ## Combine SVG images of all metrics in one
 
-# In[113]:
+# In[ ]:
 
 
-
-rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/'
-ornList = os.listdir(rootDir)
-    
-epoch_to_combine = 'P10'
-
-def combineSVGImages(rootDir,epoch_to_combine):
+def combineSVGImages(rootDirectory,epoch_to_combine):
     
     for ORN in ornList:
-        rootDir = os.path.join(rootDir,ORN)
+        rootDir = os.path.join(rootDirectory,ORN)
 
         ## Page 1
         Figure("59.4cm", "84.1cm", 
                ## LaxS images
             Panel(
-                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
+                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_fed_NoAir.svg").scale(0.025),
                   Text("A", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
                  ),
             Panel(
-                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
+                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_fed_Air.svg").scale(0.025),
                   Text("B", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 0),
             Panel(
-                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_starved_NoAir.svg").scale(0.025),
+                  Text("C", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
-                 ).move(0, 21)
+                 ).move(0, 21),
             Panel(
-                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/LaXS/" + epoch_to_combine + "/LaXS_CombinedControls_" + epoch_to_combine + "_male_starved_Air.svg").scale(0.025),
+                  Text("D", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
-                 ).move(26.5, 21)
+                 ).move(26.5, 21),
 
                 ## TSALE images
 
             Panel(
-                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
-                  Text("C", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_fed_NoAir.svg").scale(0.025),
+                  Text("E", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
                  ).move(0, 42),
             Panel(
-                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
-                  Text("D", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_fed_Air.svg").scale(0.025),
+                  Text("F", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 42),
             Panel(
-                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_starved_NoAir.svg").scale(0.025),
+                  Text("G", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
-                 ).move(0, 63)
+                 ).move(0, 63),
             Panel(
-                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/TSALE/" + epoch_to_combine + "/TSALE_CombinedControls_" + epoch_to_combine + "_male_starved_Air.svg").scale(0.025),
+                  Text("H", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 63)).save(rootDir+"/Metrics_Combined_p1" + epoch_to_combine + ".svg")
 
@@ -1990,46 +2064,46 @@ def combineSVGImages(rootDir,epoch_to_combine):
         Figure("59.4cm", "84.1cm", 
                ## weighted TSALE images
             Panel(
-                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
-                  Text("A", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_fed_NoAir.svg").scale(0.025),
+                  Text("I", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
                  ),
             Panel(
-                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_fed_Air.svg").scale(0.025),
+                  Text("J", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 0),
             Panel(
-                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_starved_NoAir.svg").scale(0.025),
+                  Text("K", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
-                 ).move(0, 21)
+                 ).move(0, 21),
             Panel(
-                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/weighted_TSALE/" + epoch_to_combine + "/weighted_TSALE_CombinedControls_" + epoch_to_combine + "_male_starved_Air.svg").scale(0.025),
+                  Text("L", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
-                 ).move(26.5, 21)
+                 ).move(26.5, 21),
 
                 ## Light Attraction Index images
 
             Panel(
-                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
-                  Text("C", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_fed_NoAir.svg").scale(0.025),
+                  Text("M", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
                  ).move(0, 42),
             Panel(
-                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
-                  Text("D", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_fed_Air.svg").scale(0.025),
+                  Text("N", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 42),
             Panel(
-                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_starved_NoAir.svg").scale(0.025),
+                  Text("O", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
-                 ).move(0, 63)
+                 ).move(0, 63),
             Panel(
-                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/LAI/" + epoch_to_combine + "/LAI_CombinedControls_" + epoch_to_combine + "_male_starved_Air.svg").scale(0.025),
+                  Text("P", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 63)).save(rootDir+"/Metrics_Combined_p2" + epoch_to_combine + ".svg")
 
@@ -2038,46 +2112,46 @@ def combineSVGImages(rootDir,epoch_to_combine):
         Figure("59.4cm", "84.1cm", 
                ## Reversal PI images
             Panel(
-                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
-                  Text("A", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_fed_NoAir.svg").scale(0.025),
+                  Text("R", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
                  ),
             Panel(
-                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_fed_Air.svg").scale(0.025),
+                  Text("S", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 0),
             Panel(
-                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_starved_NoAir.svg").scale(0.025),
+                  Text("T", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
-                 ).move(0, 21)
+                 ).move(0, 21),
             Panel(
-                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/RPI/" + epoch_to_combine + "/RPI_CombinedControls_" + epoch_to_combine + "_male_starved_Air.svg").scale(0.025),
+                  Text("U", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
-                 ).move(26.5, 21)
+                 ).move(26.5, 21),
 
                 ## DeltaPercentTimeSpent images
 
             Panel(
-                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
-                  Text("C", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_fed_NoAir.svg").scale(0.025),
+                  Text("V", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
                  ).move(0, 42),
             Panel(
-                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
-                  Text("D", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_fed_Air.svg").scale(0.025),
+                  Text("W", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 42),
             Panel(
-                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_starved_NoAir.svg").scale(0.025),
+                  Text("X", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
-                 ).move(0, 63)
+                 ).move(0, 63),
             Panel(
-                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/DeltaPercentTimeSpent/" + epoch_to_combine + "/DeltaPercentTimeSpent_CombinedControls_" + epoch_to_combine + "_male_starved_Air.svg").scale(0.025),
+                  Text("Y", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 63)).save(rootDir+"/Metrics_Combined_p3" + epoch_to_combine + ".svg")
 
@@ -2086,46 +2160,46 @@ def combineSVGImages(rootDir,epoch_to_combine):
         Figure("59.4cm", "84.1cm", 
                ## Log2SpeedRatio images
             Panel(
-                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
-                  Text("A", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_fed_NoAir.svg").scale(0.025),
+                  Text("Z", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
                  ),
             Panel(
-                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_fed_Air.svg").scale(0.025),
+                  Text("Ai", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 0),
             Panel(
-                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_starved_NoAir.svg").scale(0.025),
+                  Text("Bi", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
-                 ).move(0, 21)
+                 ).move(0, 21),
             Panel(
-                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/Log2SpeedRatio/" + epoch_to_combine + "/Log2SpeedRatio_CombinedControls_" + epoch_to_combine + "_male_starved_Air.svg").scale(0.025),
+                  Text("Ci", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
-                 ).move(26.5, 21)
+                 ).move(26.5, 21),
 
                 ## SpeedCrossingInside images
 
             Panel(
-                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
-                  Text("C", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_fed_NoAir.svg").scale(0.025),
+                  Text("Di", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
                  ).move(0, 42),
             Panel(
-                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
-                  Text("D", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_fed_Air.svg").scale(0.025),
+                  Text("Ei", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 42),
             Panel(
-                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_starved_NoAir.svg").scale(0.025),
+                  Text("Fi", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
-                 ).move(0, 63)
+                 ).move(0, 63),
             Panel(
-                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/SpeedCrossingInside/" + epoch_to_combine + "/SpeedCrossingInside_CombinedControls_" + epoch_to_combine + "_male_starved_Air.svg").scale(0.025),
+                  Text("Gi", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 63)).save(rootDir+"/Metrics_Combined_p4" + epoch_to_combine + ".svg")
 
@@ -2134,50 +2208,58 @@ def combineSVGImages(rootDir,epoch_to_combine):
         Figure("59.4cm", "84.1cm", 
                ## SpeedCrossingOutside images
             Panel(
-                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
-                  Text("A", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_fed_NoAir.svg").scale(0.025),
+                  Text("Hi", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
                  ),
             Panel(
-                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_fed_Air.svg").scale(0.025),
+                  Text("Ii", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 0),
             Panel(
-                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_starved_NoAir.svg").scale(0.025),
+                  Text("Ji", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
-                 ).move(0, 21)
+                 ).move(0, 21),
             Panel(
-                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/SpeedCrossingOutside/" + epoch_to_combine + "/SpeedCrossingOutside_CombinedControls_" + epoch_to_combine + "_male_starved_Air.svg").scale(0.025),
+                  Text("Ki", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
-                 ).move(26.5, 21)
+                 ).move(26.5, 21),
 
                 ## NoBC images
 
             Panel(
-                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_Satiated_NoAir.svg").scale(0.025),
-                  Text("C", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_fed_NoAir.svg").scale(0.025),
+                  Text("Li", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | No Air", 13, 1, size=0.5, weight='bold')
                  ).move(0, 42),
             Panel(
-                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_Satiated_Air.svg").scale(0.025),
-                  Text("D", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_fed_Air.svg").scale(0.025),
+                  Text("Mi", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Fed | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 42),
             Panel(
-                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_Starved_NoAir.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_starved_NoAir.svg").scale(0.025),
+                  Text("Ni", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | No Air", 13, 1, size=0.5, weight='bold')
-                 ).move(0, 63)
+                 ).move(0, 63),
             Panel(
-                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_Starved_Air.svg").scale(0.025),
-                  Text("B", 3, 1, size=1, weight='bold'),
+                  SVG(rootDir + "/NoBC/" + epoch_to_combine + "/NoBC_CombinedControls_" + epoch_to_combine + "_male_starved_Air.svg").scale(0.025),
+                  Text("Oi", 3, 1, size=1, weight='bold'),
                   Text(ORN + " | Starved | Air", 13, 1, size=0.5, weight='bold')
                  ).move(26.5, 63)).save(rootDir+"/Metrics_Combined_p5" + epoch_to_combine + ".svg")
     return None
     
     
             
+
+
+# In[ ]:
+
+
+rootDir = 'C:/Users/tumkayat/Desktop/ORScreening/WALiSAR_all_ORNs/'
+    
+combineSVGImages(rootDir,epoch_to_combine = 'P10' )
 
