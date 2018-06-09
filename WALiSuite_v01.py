@@ -3,7 +3,7 @@
 
 # ## Crawl in the directory, load data in
 
-# In[ ]:
+# In[1]:
 
 
 ## The InLight col we have in the count csv files and count tab in the tdms file is based on cX data. Meaning that we're doing
@@ -80,12 +80,11 @@ def dataToDataframe(rootDir):
             except:
                 print 'No pattern file(s) for %s' %(tdmsNameNoExtension)
                 
-
             ## Get exp info from the tdms filename
             tdmsNameNoExtension = tdmsNameNoExtension.split('_')
             date = tdmsNameNoExtension[1]
             time = tdmsNameNoExtension[2]
-            genotype = tdmsNameNoExtension[3][3:]
+            genotype = tdmsNameNoExtension[3]
             sex = tdmsNameNoExtension[4]
             intensity = tdmsNameNoExtension[5]
 #             lightType = 'Constant'
@@ -219,7 +218,7 @@ def dataToDataframe(rootDir):
 
 # ## Metric: LaXS
 
-# In[ ]:
+# In[60]:
 
 
 ## Usual PI calculation, called by
@@ -232,7 +231,7 @@ def calculatePI(data):
     PI = float(totalTimeinLight - totalTimeinDark)/float(numofTimePoints)
     return PI
 
-def LaXS(df, rootDir, Xsec = 30, combineControls=False, dropNans = False):
+def LaXS(df, rootDir, combineControls, Xsec = 30, dropNans = False):
     numberOfFlies = df.shape[0]
     LXS_P01_list = []
     LXS_P10_list = []
@@ -244,8 +243,8 @@ def LaXS(df, rootDir, Xsec = 30, combineControls=False, dropNans = False):
         numberOfFrames = Xsec * int(df['fps'][fly])
         
         ## get the "in light or not" list per epoch
-        inLight_headX_P01 = df['InLight_HeadX|P01'][fly][-numberOfFrames:]
-        inLight_headX_P10 = df['InLight_HeadX|P10'][fly][-numberOfFrames:]
+        inLight_headX_P01 = df['InLight_HeadX|P01'][fly][-1*numberOfFrames:]
+        inLight_headX_P10 = df['InLight_HeadX|P10'][fly][-1*numberOfFrames:]
         
         ## send them to the calculate PI function
         LXS_P01 = calculatePI(inLight_headX_P01)
@@ -269,7 +268,7 @@ def LaXS(df, rootDir, Xsec = 30, combineControls=False, dropNans = False):
 
 # ## Metric: TSALE
 
-# In[ ]:
+# In[3]:
 
 
 def TSALE(df, rootDir, combineControls=False, dropNans=False):
@@ -354,7 +353,7 @@ def MeanPreferenceIndexNoNANs(df):
 
 # ## Metric: weighted-TSALE
 
-# In[ ]:
+# In[4]:
 
 
 def weighted_TSALE(dff, rootDir,combineControls=False, dropNans=False):
@@ -402,7 +401,7 @@ def weighted_TSALE(dff, rootDir,combineControls=False, dropNans=False):
 
 # ## Metric: Light attraction index
 
-# In[ ]:
+# In[5]:
 
 
 ## Function 1: Detect choice zone entrance/exits indices, store them in the df
@@ -650,7 +649,7 @@ def LAI(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metrix: Reversal PI
 
-# In[ ]:
+# In[6]:
 
 
 def RPI(df, rootDir, combineControls=False, dropNans=False):
@@ -743,7 +742,7 @@ def RPI(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Number of Border Crossings
 
-# In[ ]:
+# In[7]:
 
 
 ### NTS: fix this to SMOOTHED HEAD X!!
@@ -811,7 +810,7 @@ def NoBC(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Speed ratio
 
-# In[ ]:
+# In[8]:
 
 
 ### NTS: convert HeadX to SMOOTHED HEADX
@@ -1004,7 +1003,7 @@ def Log2SpeedRatio(df ,rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Delta Time Spent Before and During Light
 
-# In[ ]:
+# In[9]:
 
 
 def calculatePercentageTimeSpent(data, total_epoch_time):
@@ -1092,7 +1091,7 @@ def DeltaPercentTimeSpent(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Speed crossing inside
 
-# In[ ]:
+# In[10]:
 
 
 def calculateAcuteSpeed(data, crossing_idx, fps, mmPerPix, length_sec=3):
@@ -1186,7 +1185,7 @@ def SpeedCrossingInside(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Metric: Speed crossing outside
 
-# In[ ]:
+# In[11]:
 
 
 def calculateAcuteSpeed(data, crossing_idx, fps, mmPerPix, length_sec=3):
@@ -1285,7 +1284,7 @@ def SpeedCrossingOutside(df, rootDir, combineControls=False, dropNans=False):
 
 # ## Track Visualization
 
-# In[ ]:
+# In[12]:
 
 
 ## Plot a single fly's trajectory as well as first light contacts.
@@ -1365,7 +1364,7 @@ VisualizeSingleFlyTrajectory(dd, flyiLoc=flyiLoc,mark = False, smoothHeadX=False
 # plt.show()
 
 
-# In[ ]:
+# In[12]:
 
 
 def VisualizeGroupsOfData(group,data,counter,numOfGroups,axs,individualFlies,durationAfterEntrance_frames,ylim):
@@ -1596,7 +1595,7 @@ ax1.plot(range(len(x)), x, color='black')
 
 # ## Plot any given metric
 
-# In[ ]:
+# In[91]:
 
 
 def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
@@ -1624,10 +1623,18 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
     df.to_pickle(savePath + metric + '_values.pkl')
     
     ## define the color palette
-    myPal = {df['Genotype'].unique()[0] : 'lightgreen',
-             df['Genotype'].unique()[1] : 'cyan',
-             df['Genotype'].unique()[2]:  'red'}
-    
+    if len(df['Genotype'].unique()) == 3:
+        myPal = {df['Genotype'].unique()[0] : 'lightgreen',
+                 df['Genotype'].unique()[1] : 'cyan',
+                 df['Genotype'].unique()[2]:  'red'}
+        
+    elif len(df['Genotype'].unique()) == 5:
+        myPal = {df['Genotype'].unique()[0] : 'lightgreen',
+                 df['Genotype'].unique()[1] : 'coral',
+                 df['Genotype'].unique()[2]:  'orchid',
+                 df['Genotype'].unique()[3] : 'red',
+                 df['Genotype'].unique()[4]:  'royalblue'}
+        
     ## get the list of vairables    
     listofSex = df['Sex'].unique()
     listofSatiety = df['Satiety'].unique()
@@ -1657,8 +1664,8 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                         metricForFileName = metric + '_CombinedControls_NansDropped'
                     
                     try:
-                        ## P01 of the metric
-                        fig,b = bs.contrastplot(df, x = 'Status_Sex_Satiety_Intensity_Wind', y = metric+'_P01' ,
+                    ## P01 of the metric
+                        fig,b = dabest.plot(df, x = 'Status_Sex_Satiety_Intensity_Wind', y = metric+'_P01' ,
                                 color_col= 'Genotype', custom_palette = myPal,  float_contrast=False,                     
                               idx = (
                                      ('Parent_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
@@ -1675,7 +1682,7 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                         plt.clf()
 
                         ## P10 of the metric
-                        fig,b = bs.contrastplot(df, x = 'Status_Sex_Satiety_Intensity_Wind', y = metric+'_P10' ,
+                        fig,b = dabest.plot(df, x = 'Status_Sex_Satiety_Intensity_Wind', y = metric+'_P10' ,
                                 color_col= 'Genotype', custom_palette = myPal,  float_contrast=False,                     
                               idx = (
                                      ('Parent_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
@@ -1691,7 +1698,7 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                         plt.clf()
 
                         ## Mean of the metric
-                        fig,b = bs.contrastplot(df, x = 'Status_Sex_Satiety_Intensity_Wind', y = metric+'_Mean' ,
+                        fig,b = dabest.plot(df, x = 'Status_Sex_Satiety_Intensity_Wind', y = metric+'_Mean' ,
                                 color_col= 'Genotype', custom_palette = myPal, float_contrast=False,                     
                               idx = (
                                      ('Parent_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 'Offspring_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
@@ -1705,7 +1712,6 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                         plt.close(fig)
                         plt.clf()
                     except:
-                        
                         print "Not available %s" % (str(sex) + '_' + str(satietyStat) + '_' + str(windStat))
     elif combineControls == False:  
         
@@ -1728,144 +1734,275 @@ def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
                         metricForFileName = metric
                     elif dropNans == True:
                         metricForFileName = metric + '_NansDropped'
-                    try:   
-                        ## P01 of the metric
-                        fig,b = bs.contrastplot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P01' ,
-                                color_col= 'Genotype', custom_palette = myPal,                      
-                              idx = (
-                                     (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
-                                      str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
-                                      str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
-
-                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
-                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
-                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
-
-                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
-                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
-                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
-
-                        savePath = rootDir + '/' + metric + '/P01/'
-                        saveFileName = metricForFileName + '_P01_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                        plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
-                        b.to_csv(savePath + saveFileName + '.csv')
-
-                        ## close the figures to save memory
-                        plt.close(fig)
-                        plt.clf()
-
-
-                        ## P10 of the metric
-                        fig,b = bs.contrastplot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P10' ,
-                                color_col= 'Genotype', custom_palette = myPal,                      
-                              idx = (
-                                     (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
-                                      str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
-                                      str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
-
-                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
-                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
-                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
-
-                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
-                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
-                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
-
-                        savePath = rootDir + '/' + metric + '/P10/'
-                        saveFileName = metricForFileName + '_P10_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                        plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
-                        b.to_csv(savePath + saveFileName + '.csv')
-
-                        ## close the figures to save memory
-                        plt.close(fig)
-                        plt.clf()
-
-                        ## Mean of the metric
-                        fig,b = bs.contrastplot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_Mean' ,
-                                color_col= 'Genotype', custom_palette = myPal,                      
-                              idx = (
-                                     (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
-                                      str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
-                                      str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
-
-                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
-                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
-                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
-
-                                      (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
-                                       str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
-                                       str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
-
-                        savePath = rootDir + '/' + metric + '/Mean/'
-                        saveFileName = metricForFileName + '_Mean_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
-                        plt.savefig(savePath + saveFileName + '.pdf',dpi=1000,bbox_inches='tight')
-                        b.to_csv(savePath + saveFileName + '.csv')
-
-                        ## close the figures to save memory
-                        plt.close(fig)
-                        plt.clf()
-                    except:
                         
-                        print "Not available %s" % (str(sex) + '_' + str(satietyStat) + '_' + str(windStat))
+                    if len(listofGenotypes) == 3:
+                        try:   
+                            ## P01 of the metric
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P01' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
+
+                                          (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
+                                           str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                           str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
+
+                                          (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
+                                           str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                           str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
+
+                            savePath = rootDir + '/' + metric + '/P01/'
+                            saveFileName = metricForFileName + '_P01_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+
+
+                            ## P10 of the metric
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P10' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
+
+                                          (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
+                                           str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                           str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
+
+                                          (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
+                                           str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                           str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
+
+                            savePath = rootDir + '/' + metric + '/P10/'
+                            saveFileName = metricForFileName + '_P10_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+
+                            ## Mean of the metric
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_Mean' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat)),
+
+                                          (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
+                                           str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                           str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat)),
+
+                                          (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
+                                           str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                           str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
+
+                            savePath = rootDir + '/' + metric + '/Mean/'
+                            saveFileName = metricForFileName + '_Mean_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+                        except:
+                            print "Not available %s" % (str(sex) + '_' + str(satietyStat) + '_' + str(windStat))
+                            
+                            
+                    elif len(listofGenotypes) == 5: 
+                        
+                        try:   
+                            ## P01 of the metric
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P01' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[3]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[4]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat))))
+
+                            savePath = rootDir + '/' + metric + '/P01/'
+                            saveFileName = metricForFileName + '_P01_14uW_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+                            
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P01' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                          str(listofGenotypes[3]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                          str(listofGenotypes[4]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat))))
+
+                            savePath = rootDir + '/' + metric + '/P01/'
+                            saveFileName = metricForFileName + '_P01_42uW_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+                            
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P01' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                          str(listofGenotypes[3]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                          str(listofGenotypes[4]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
+
+                            savePath = rootDir + '/' + metric + '/P01/'
+                            saveFileName = metricForFileName + '_P01_70uW_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+                            
+                            ## P10 of the metric
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P10' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[3]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[4]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat))))
+
+                                          
+
+                            savePath = rootDir + '/' + metric + '/P10/'
+                            saveFileName = metricForFileName + '_P10_14uW_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+                            
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P10' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                          str(listofGenotypes[3]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                          str(listofGenotypes[4]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat))))
+
+                                          
+
+                            savePath = rootDir + '/' + metric + '/P10/'
+                            saveFileName = metricForFileName + '_P10_42uW_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+
+                            
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_P10' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                          str(listofGenotypes[3]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                          str(listofGenotypes[4]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
+
+                                          
+
+                            savePath = rootDir + '/' + metric + '/P10/'
+                            saveFileName = metricForFileName + '_P10_70uW_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+
+
+                            ## Mean of the metric
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_Mean' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[3]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat),
+                                          str(listofGenotypes[4]) + '_' + str(sex) + '_' + str(satietyStat) + '_14uW_' + str(windStat))))
+
+                                         
+                            savePath = rootDir + '/' + metric + '/Mean/'
+                            saveFileName = metricForFileName + '_Mean_14uW_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+                            
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_Mean' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                          str(listofGenotypes[3]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat),
+                                          str(listofGenotypes[4]) + '_' + str(sex) + '_' + str(satietyStat) + '_42uW_' + str(windStat))))
+
+                                         
+                            savePath = rootDir + '/' + metric + '/Mean/'
+                            saveFileName = metricForFileName + '_Mean_42uW_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+                            
+                            fig,b = dabest.plot(df, x = 'Genotype_Sex_Satiety_Intensity_Wind', y = metric+'_Mean' ,
+                                    color_col= 'Genotype', custom_palette = myPal,                      
+                                  idx = (
+                                         (str(listofGenotypes[0]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat), 
+                                          str(listofGenotypes[1]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                          str(listofGenotypes[2]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                          str(listofGenotypes[3]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat),
+                                          str(listofGenotypes[4]) + '_' + str(sex) + '_' + str(satietyStat) + '_70uW_' + str(windStat))))
+
+                                         
+                            savePath = rootDir + '/' + metric + '/Mean/'
+                            saveFileName = metricForFileName + '_Mean_70uW_' + str(sex) + '_' + str(satietyStat) + '_' + str(windStat)
+                            plt.savefig(savePath + saveFileName + '.svg',dpi=1000,bbox_inches='tight')
+                            b.to_csv(savePath + saveFileName + '.csv')
+
+                            ## close the figures to save memory
+                            plt.close(fig)
+                            plt.clf()
+                        except:
+                            print "Not available %s" % (str(sex) + '_' + str(satietyStat) + '_' + str(windStat))
     return None
 
 
-# ## Execute
-
-# In[ ]:
+# In[40]:
 
 
-import os
-import seaborn as sns
-import pandas as pd
-from scipy import stats
-import scipy as sp
-import numpy as np
-import datetime as dt
-# %matplotlib inline
-import matplotlib
-# matplotlib.use('Agg')
-# %matplotlib notebook
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
-from itertools import groupby
-from operator import itemgetter
-import bootstrap_contrast as bs
-from nptdms import *
-import math
-from collections import Counter
-import shutil
-import progressbar
-
-# rootDir = 'C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure'
-# d, t = WALiMe(rootDir=rootDir, metrics = ['TSALE'])
-
-
-# In[ ]:
-
-
-df = pd.read_pickle('C:/Users/tumkayat/Desktop/CodeRep/WALiSAR/BehaviroalDataAnalyses/WALiSuite_v0.1/SampleFolderStructure/Or9a/RawDataFrame.pkl')
-
-
-# In[ ]:
-
-
-# df = df.copy(deep=True)
-df['Light Intensity(uW/mm2)'] = df['Light Intensity(uW/mm2)'].str[3:-9]
-
-
-# In[ ]:
-
-
-df = df.assign(Status_Sex_Satiety_LightType_Intensity_Wind = pd.Series(df['Status'] + '_' + df['Sex'] + '_' +
-             df['Satiety'] + '_' + df['Light type'] + '_' + df['Light Intensity(uW/mm2)'] + '_' +
-             df['Wind status'], index = df.index))  
-
-
-# In[ ]:
-
-
-def WALiMe(rootDirectory, pickORN=False):
+def WALiMe(rootDirectory, pickORN=False,combineControls=True):
     
     if pickORN == False:
         ## Get a list of ORNs in the folder
@@ -1886,21 +2023,21 @@ def WALiMe(rootDirectory, pickORN=False):
                 df = dataToDataframe(rootDir)
 
             ## apply the metrics
-            LaXS(df, rootDir, combineControls=True, dropNans=False)
-            TSALE(df, rootDir, combineControls=True, dropNans=False)
-            weighted_TSALE(df, rootDir, combineControls=True, dropNans=False)
-            LAI(df, rootDir, combineControls=True, dropNans=False)
+            LaXS(df, rootDir, combineControls, dropNans=False)
+            TSALE(df, rootDir, combineControls, dropNans=False)
+            weighted_TSALE(df, rootDir, combineControls, dropNans=False)
+            LAI(df, rootDir, combineControls, dropNans=False)
 
             try:
-                RPI(df, rootDir, combineControls=True, dropNans=False)
+                RPI(df, rootDir, combineControls, dropNans=False)
             except:
                 print "Did not calculate RPI for some errors in mannwhitney stats for ORN %s" %(ORN)
 
-            DeltaPercentTimeSpent(df, rootDir, combineControls=True, dropNans=False)
-            Log2SpeedRatio(df, rootDir, combineControls=True, dropNans=False)
-            SpeedCrossingInside(df, rootDir, combineControls=True, dropNans=False)
-            SpeedCrossingOutside(df, rootDir, combineControls=True, dropNans=False)
-            NoBC(df, rootDir, combineControls=True, dropNans=False)
+            DeltaPercentTimeSpent(df, rootDir, combineControls, dropNans=False)
+            Log2SpeedRatio(df, rootDir, combineControls, dropNans=False)
+            SpeedCrossingInside(df, rootDir, combineControls, dropNans=False)
+            SpeedCrossingOutside(df, rootDir, combineControls, dropNans=False)
+            NoBC(df, rootDir, combineControls, dropNans=False)
     else:
         ORN = pickORN
             
@@ -1915,37 +2052,28 @@ def WALiMe(rootDirectory, pickORN=False):
             df = dataToDataframe(rootDir)
 
         ## apply the metrics
-        LaXS(df, rootDir, combineControls=True, dropNans=False)
-        TSALE(df, rootDir, combineControls=True, dropNans=False)
-        weighted_TSALE(df, rootDir, combineControls=True, dropNans=False)
-        LAI(df, rootDir, combineControls=True, dropNans=False)
+        LaXS(df, rootDir, combineControls, dropNans=False)
+        TSALE(df, rootDir, combineControls, dropNans=False)
+        weighted_TSALE(df, rootDir, combineControls, dropNans=False)
+        LAI(df, rootDir, combineControls, dropNans=False)
 
         try:
-            RPI(df, rootDir, combineControls=True, dropNans=False)
+            RPI(df, rootDir, combineControls, dropNans=False)
         except:
             print "Did not calculate RPI for some errors in mannwhitney stats for ORN %s" %(ORN)
 
-        DeltaPercentTimeSpent(df, rootDir, combineControls=True, dropNans=False)
-        Log2SpeedRatio(df, rootDir, combineControls=True, dropNans=False)
-        SpeedCrossingInside(df, rootDir, combineControls=True, dropNans=False)
-        SpeedCrossingOutside(df, rootDir, combineControls=True, dropNans=False)
-        NoBC(df, rootDir, combineControls=True, dropNans=False)
+        DeltaPercentTimeSpent(df, rootDir, combineControls, dropNans=False)
+        Log2SpeedRatio(df, rootDir, combineControls, dropNans=False)
+        SpeedCrossingInside(df, rootDir, combineControls, dropNans=False)
+        SpeedCrossingOutside(df, rootDir, combineControls, dropNans=False)
+        NoBC(df, rootDir, combineControls, dropNans=False)
 
     return df
 
 
-# In[ ]:
-
-
-import os
-rootDirectory = "C:/Users/tumkayat/Desktop/ORScreening/WALiSAR_all_ORNs/Or49a/"
-ornList = os.listdir(rootDirectory)
-ornList
-
-
 # ### Execute
 
-# In[ ]:
+# In[3]:
 
 
 import os
@@ -1970,15 +2098,48 @@ from collections import Counter
 import shutil
 import progressbar
 from svgutils.compose import *
+import dabest
 
-rootDirectory = "C:/Users/tumkayat/Desktop/ORScreening/WALiSAR_all_ORNs/"
-d = WALiMe(rootDirectory)
-
-
-# In[ ]:
+rootDirectory = "C:/Users/tumkayat/Desktop/ORScreening/TransferToSOD/"
+d = WALiMe(rootDirectory,pickORN='Orco_activation_GH146_inhibition',combineControls=False)
 
 
-df = pd.read_pickle('C:/Users/tumkayat/Desktop/ORScreening/WALiSAR_all_ORNs/Or43a/RawDataFrame.pkl')
+# In[46]:
+
+
+df = pd.read_pickle("C:/Users/tumkayat/Desktop/ORScreening/TransferToSOD/Orco_activation_R58E02_inhibiton/RawDataFrame.pkl")
+
+
+# In[36]:
+
+
+df.to_pickle("C:/Users/tumkayat/Desktop/ORScreening/TransferToSOD/Orco_activation_R58E02_inhibiton/RawDataFrame.pkl")
+
+
+# In[66]:
+
+
+df = df.assign(Genotype_Sex_Satiety_Intensity_Wind = pd.Series(df['Genotype'] + '_' + df['Sex'] + '_' +
+             df['Satiety'] + '_'  + df['Light Intensity(uW/mm2)'] + '_' +
+             df['Wind status'], index = df.index))
+
+
+# In[68]:
+
+
+df['Genotype_Sex_Satiety_Intensity_Wind']
+
+
+# In[34]:
+
+
+df['Sex'][df['Sex'] == ('male-asghar')] = 'male-combined'
+
+
+# In[70]:
+
+
+df['Status'][df['Genotype'].str.contains('W1118')] = 'Parent'
 
 
 # In[ ]:
@@ -1999,6 +2160,279 @@ df = df.assign(Status_Sex_Satiety_Intensity_Wind = pd.Series(df['Status'] + '_' 
 
 
 list(df['Status_Sex_Satiety_Intensity_Wind'].unique())
+
+
+# ## Plot individual flies across the 12 conditions
+
+# In[49]:
+
+
+df = pd.read_pickle("T:/ACC/Tayfuntumkaya/DATA/CompleteWALiSARORNData_Analyzed/Orco/weighted_TSALE/weighted_TSALE_values.pkl")
+
+df = df.assign(Genotype_Sex_Satiety_Intensity_Wind = pd.Series(df['Genotype'] + '_' + df['Sex'] + '_' +
+             df['Satiety'] + '_' + df['Light Intensity(uW/mm2)'] + '_' +
+             df['Wind status'], index = df.index))
+
+df = df.assign(Status_Sex_Satiety_Intensity_Wind = pd.Series(df['Status'] + '_' + df['Sex'] + '_' +
+             df['Satiety'] + '_' + df['Light Intensity(uW/mm2)'] + '_' +
+             df['Wind status'], index = df.index))
+
+df = df.assign(Sex_Satiety_Intensity_Wind = pd.Series(df['Sex'] + '_' +
+             df['Satiety'] + '_' + df['Light Intensity(uW/mm2)'] + '_' +
+             df['Wind status'], index = df.index))
+
+
+# In[50]:
+
+
+df['Sex_Satiety_Intensity_Wind'].unique()
+
+
+# In[40]:
+
+
+df['Genotype'].unique()
+
+
+# In[51]:
+
+
+## Here I get the sibling controls and experiments across 12 conditions
+Ctrl_df = df[(df['Genotype'] == 'w1118-UAS-CsChrimson') | (df['Genotype'] == 'w1118-Orco-Gal4')]
+Exp_df = df[(df['Genotype'] == 'Orco-Gal4-UAS-CsChrimson')]
+
+condlist = ['male-combined_fed_14uW_NoAir', 'male-combined_fed_14uW_Air', 
+            'male-combined_fed_42uW_NoAir', 'male-combined_fed_42uW_Air', 
+            'male-combined_fed_70uW_NoAir', 'male-combined_fed_70uW_Air']
+
+
+# In[52]:
+
+
+def getConditionFrame(df, conditionlist):
+
+    temp = {}
+    ## i.e. [v1,v2,..v12] Then gonna send each sublists to plot in a for loop     
+    
+    for i in range(len(condlist)): 
+        temp['Step' + str(i) + '_P01'] = []
+        temp['Step' + str(i) + '_P10'] = [] 
+        temp['Genotype'] = []
+        
+        d = df[df['Sex_Satiety_Intensity_Wind'] == condlist[i]]
+        
+        for fly in range(d.shape[0]):                   
+            val_P01 = d['weighted_TSALE_P01'].iloc[fly]
+            val_P10 = d['weighted_TSALE_P10'].iloc[fly]
+            
+            temp['Step' + str(i) + '_P01'].append(val_P01)
+            temp['Step' + str(i) + '_P10'].append(val_P10)
+            temp['Genotype'].append(d['Genotype'].iloc[fly])        
+        
+    AcrossConditions_df = pd.DataFrame.from_dict(temp)
+       
+    AcrossConditions_df['wTSALE_across_conditions'] = AcrossConditions_df[['Step0_P01','Step0_P10','Step1_P01','Step1_P10',                             'Step2_P01' , 'Step2_P10' ,                             'Step3_P01' , 'Step3_P10' ,                             'Step4_P01' , 'Step4_P10' ,                             'Step5_P01' , 'Step5_P10']].values.tolist()
+    return AcrossConditions_df
+
+
+# In[53]:
+
+
+Ctrl_across_conditions = getConditionFrame(Ctrl_df,condlist)
+Exp_across_conditions = getConditionFrame(Exp_df,condlist)
+
+
+# In[59]:
+
+
+## Get the "condition frame" and use this function to plot
+def confidenceInterval(data):  # Function calculates data arrays' CI. 
+    n = len(data)
+    m, std = np.nanmean(data), np.nanstd(data)
+    moe = 1.96 * std/np.sqrt(n)
+   
+    return m-moe, m+moe, n, std
+
+def sequentialPlot(df,color=False):
+    
+    ## import the libraries, set some parameters
+    import itertools
+    from matplotlib.lines import Line2D
+    import scipy.stats
+
+    style='ticks'
+    context='notebook'
+    font='Arial'
+    if color == False:
+        colorlist = ['green','coral']
+    else:
+        colorlist = color
+    jitter = 0 ## in case want to separate the lines
+    color_id = 0
+
+    ## these are for the legend
+    custom_lines = [Line2D([0], [0], color = 'k', marker = 'o',lw=1)]
+    legend_labels = ['Mean [95%CI]']
+
+    sns.set(style=style,context =context,font=font)
+
+    fig1 = plt.figure(figsize=(10,4))
+    ax1 = fig1.add_subplot(111)
+
+    ## then plotting the lines by iterating 12-value-containing sublists from the df
+    ## grouped by genotypye, especially for controls
+    for g,d in df.groupby('Genotype'):
+
+        for fly in range(len(d)):
+
+            values_per_fly = d['wTSALE_across_conditions'].iloc[fly]
+
+            x1 = 1    
+            for i in range(len(values_per_fly)-1):
+                x2 = x1 + 1 - jitter
+                y1 = values_per_fly[i]
+                y2 = values_per_fly[i+1]
+                ax1.plot([x1,x2],[y1,y2], label = g, color=colorlist[color_id], linewidth=0.3,zorder=0,alpha=.2)
+
+                x1 = x1 + 1
+
+        custom_lines.append(Line2D([0], [0], color = colorlist[color_id], lw=1))
+        legend_labels.append(g+' (n=' + str(len(d)) + ')')
+        color_id = color_id + 1
+
+    ## calculating the means and CIs of each condition
+    across_conditions_matrix = np.array(df['wTSALE_across_conditions'].tolist())
+    means = []
+    sample_size = []
+    std = []
+    ci_lb = []
+    ci_ub = []
+
+    for i in range(len(across_conditions_matrix[0])):
+        data = across_conditions_matrix[:,i]
+        means.append(np.nanmean(data))
+        CI_LB, CI_UB, N, STD = confidenceInterval(data)
+        ci_lb.append(CI_LB)
+        ci_ub.append(CI_UB)
+        sample_size.append(N)
+        std.append(STD)
+
+    stats_table = {'Mean':means, 'Sample_size':sample_size, 'Standart_dev':std, 'CI_LB':ci_lb, 'CI_UB':ci_ub}
+    ## plotting the mean dots , zorder specifies the layer order - i.e dots are in the front
+    x1 = 1
+    for i in range(len(means)):
+        ax1.scatter(x1, means[i], s=90,c='k',zorder=10)
+        ax1.plot([x1,x1], [ci_lb[i], ci_ub[i]], color='k', lw=1)
+        x1 = x1 + 1
+
+    ax1.set_ylim(-1,1)
+    ax1.set_ylabel('weighted-TSALE')
+    ax1.set_xticks(np.arange(0,len(condlist)*2+1))
+    xlabel = []
+    for c in condlist:
+        xlabel.append(c + '_P01')
+        xlabel.append(c + '_P10')
+    ax1.set_xticklabels(xlabel,rotation=45)
+    ax1.legend(custom_lines, legend_labels,bbox_to_anchor=(1, 1))
+
+    sns.despine()
+    stats_table['Steps'] = xlabel
+    stats_table_df = pd.DataFrame.from_dict(stats_table)
+
+    return fig1, stats_table_df
+
+
+# In[61]:
+
+
+fig, s = sequentialPlot(Ctrl_across_conditions, color = False)
+# fig, s = sequentialPlot(Exp_across_conditions, color = ['royalblue'])
+
+fig
+
+
+# In[58]:
+
+
+fname = 'Orco_Forward_ctrl'
+fig.savefig("C:/Users/tumkayat/Desktop/Thesis/Figures/Chapter2/" + fname + ".pdf",dpi=1000,bbox_inches='tight')
+s.to_csv("C:/Users/tumkayat/Desktop/Thesis/Figures/Chapter2/" + fname + ".csv")
+
+
+# In[62]:
+
+
+s ## wtf is sample size so big
+
+
+
+
+
+
+# ## Contrast of the means across 12-steps
+
+# In[60]:
+
+
+def ContrastofSequence(df_ctrl,df_exp):
+    contrast_means = []
+    contrast_CI_LB = []
+    contrast_CI_UB = []
+    
+    for i in range(len(df1)):
+        mean_ctrl = df_ctrl['Means'][i]
+        mean_exp = df_exp['Means'][i]
+        
+        N_ctrl = df_ctrl['Sample_size'][i]
+        N_exp = df_exp['Sample_size'][i]
+        
+        STD_ctrl = df_ctrl['Standart_dev'][i]
+        STD_exp = df_exp['Standart_dev'][i]
+        
+        mean_diff = mean_exp - mean_ctrl
+        
+        moe = 1.96*sqrt(((STD_ctrl**2)/N_ctrl)+((STD_exp**2)/N_exp))
+        CI_LB = mean_diff - moe
+        CI_UB = mean_diff + moe
+        
+        contrast_means.append(mean_diff)
+        contrast_CI_LB.append(CI_LB)
+        contrast_CI_UB.append(CI_UB)
+        
+    ## import the libraries, set some parameters
+    import itertools
+    from matplotlib.lines import Line2D
+    import scipy.stats
+
+    style='ticks'
+    context='notebook'
+    font='Arial'
+
+    sns.set(style=style,context =context,font=font)
+
+    fig1 = plt.figure(figsize=(10,4))
+    ax1 = fig1.add_subplot(111)
+    
+    ## plotting the mean dots , zorder specifies the layer order - i.e dots are in the front
+    x1 = 1
+    for i in range(len(contrast_means)):
+        ax1.scatter(x1, contrast_means[i], s=90, c='k',zorder=10)
+        ax1.plot([x1,x1], [contrast_CI_LB[i], contrast_CI_UB[i]], color='k', lw=1)
+        x1 = x1 + 1
+
+    ax1.set_ylim(-1,1)
+    ax1.set_ylabel('weighted-TSALE')
+    ax1.set_xticks(np.arange(0,len(condlist)*2+1))
+    xlabel = []
+    for c in condlist:
+        xlabel.append(c + '_P01')
+        xlabel.append(c + '_P10')
+    ax1.set_xticklabels(xlabel,rotation=45)
+    ax1.legend(custom_lines, legend_labels,bbox_to_anchor=(1, 1))
+
+    sns.despine()
+
+    return fig1
 
 
 # ## Combine SVG images of all metrics in one
