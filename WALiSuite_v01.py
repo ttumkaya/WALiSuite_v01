@@ -218,7 +218,7 @@ def dataToDataframe(rootDir):
 
 # ## Metric: LaXS
 
-# In[60]:
+# In[2]:
 
 
 ## Usual PI calculation, called by
@@ -1595,7 +1595,7 @@ ax1.plot(range(len(x)), x, color='black')
 
 # ## Plot any given metric
 
-# In[91]:
+# In[12]:
 
 
 def plotTheMetric(df,metric,rootDir,combineControls, dropNans=False):
@@ -2073,7 +2073,7 @@ def WALiMe(rootDirectory, pickORN=False,combineControls=True):
 
 # ### Execute
 
-# In[3]:
+# In[20]:
 
 
 import os
@@ -2091,20 +2091,20 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from itertools import groupby
 from operator import itemgetter
-import bootstrap_contrast as bs
+# import bootstrap_contrast as bs
 from nptdms import *
 import math
 from collections import Counter
 import shutil
 import progressbar
-from svgutils.compose import *
+# from svgutils.compose import *
 import dabest
 
-rootDirectory = "C:/Users/tumkayat/Desktop/ORScreening/TransferToSOD/"
-d = WALiMe(rootDirectory,pickORN='Orco_activation_GH146_inhibition',combineControls=False)
+# rootDirectory = "C:/Users/tumkayat/Desktop/ORScreening/TransferToSOD/"
+# d = WALiMe(rootDirectory,pickORN='Orco_activation_GH146_inhibition',combineControls=False)
 
 
-# In[46]:
+# In[16]:
 
 
 df = pd.read_pickle("C:/Users/tumkayat/Desktop/ORScreening/TransferToSOD/Orco_activation_R58E02_inhibiton/RawDataFrame.pkl")
@@ -2164,10 +2164,10 @@ list(df['Status_Sex_Satiety_Intensity_Wind'].unique())
 
 # ## Plot individual flies across the 12 conditions
 
-# In[49]:
+# In[26]:
 
 
-df = pd.read_pickle("T:/ACC/Tayfuntumkaya/DATA/CompleteWALiSARORNData_Analyzed/Orco/weighted_TSALE/weighted_TSALE_values.pkl")
+df = pd.read_pickle("/Users/Tayfun/Desktop/Codes/DATA/Gr66a/weighted_TSALE_values.pkl")
 
 df = df.assign(Genotype_Sex_Satiety_Intensity_Wind = pd.Series(df['Genotype'] + '_' + df['Sex'] + '_' +
              df['Satiety'] + '_' + df['Light Intensity(uW/mm2)'] + '_' +
@@ -2182,31 +2182,31 @@ df = df.assign(Sex_Satiety_Intensity_Wind = pd.Series(df['Sex'] + '_' +
              df['Wind status'], index = df.index))
 
 
-# In[50]:
+# In[27]:
 
 
 df['Sex_Satiety_Intensity_Wind'].unique()
 
 
-# In[40]:
+# In[28]:
 
 
 df['Genotype'].unique()
 
 
-# In[51]:
+# In[29]:
 
 
 ## Here I get the sibling controls and experiments across 12 conditions
-Ctrl_df = df[(df['Genotype'] == 'w1118-UAS-CsChrimson') | (df['Genotype'] == 'w1118-Orco-Gal4')]
-Exp_df = df[(df['Genotype'] == 'Orco-Gal4-UAS-CsChrimson')]
+Ctrl_df = df[(df['Genotype'] == 'w1118-UAS-CsChrimson') | (df['Genotype'] == 'w1118-Gr66a-Gal4')]
+Exp_df = df[(df['Genotype'] == 'Gr66a-Gal4-UAS-CsChrimson')]
 
-condlist = ['male-combined_fed_14uW_NoAir', 'male-combined_fed_14uW_Air', 
-            'male-combined_fed_42uW_NoAir', 'male-combined_fed_42uW_Air', 
-            'male-combined_fed_70uW_NoAir', 'male-combined_fed_70uW_Air']
+condlist = ['male_fed_14uW_NoAir', 'male_fed_14uW_Air', 
+            'male_fed_42uW_NoAir', 'male_fed_42uW_Air',  
+            'male_fed_70uW_NoAir', 'male_fed_70uW_Air']
 
 
-# In[52]:
+# In[30]:
 
 
 def getConditionFrame(df, conditionlist):
@@ -2235,14 +2235,14 @@ def getConditionFrame(df, conditionlist):
     return AcrossConditions_df
 
 
-# In[53]:
+# In[31]:
 
 
 Ctrl_across_conditions = getConditionFrame(Ctrl_df,condlist)
 Exp_across_conditions = getConditionFrame(Exp_df,condlist)
 
 
-# In[59]:
+# In[67]:
 
 
 ## Get the "condition frame" and use this function to plot
@@ -2286,7 +2286,6 @@ def sequentialPlot(df,color=False):
         for fly in range(len(d)):
 
             values_per_fly = d['wTSALE_across_conditions'].iloc[fly]
-
             x1 = 1    
             for i in range(len(values_per_fly)-1):
                 x2 = x1 + 1 - jitter
@@ -2299,15 +2298,17 @@ def sequentialPlot(df,color=False):
         custom_lines.append(Line2D([0], [0], color = colorlist[color_id], lw=1))
         legend_labels.append(g+' (n=' + str(len(d)) + ')')
         color_id = color_id + 1
-
-    ## calculating the means and CIs of each condition
-    across_conditions_matrix = np.array(df['wTSALE_across_conditions'].tolist())
+        
+    ## Get the means and CIs here 
     means = []
     sample_size = []
     std = []
     ci_lb = []
     ci_ub = []
-
+            
+    ## calculating the means and CIs of each condition
+    across_conditions_matrix = np.array(df['wTSALE_across_conditions'].tolist())
+    
     for i in range(len(across_conditions_matrix[0])):
         data = across_conditions_matrix[:,i]
         means.append(np.nanmean(data))
@@ -2326,7 +2327,7 @@ def sequentialPlot(df,color=False):
         x1 = x1 + 1
 
     ax1.set_ylim(-1,1)
-    ax1.set_ylabel('weighted-TSALE')
+    ax1.set_ylabel('delta wTSALE')
     ax1.set_xticks(np.arange(0,len(condlist)*2+1))
     xlabel = []
     for c in condlist:
@@ -2342,46 +2343,48 @@ def sequentialPlot(df,color=False):
     return fig1, stats_table_df
 
 
-# In[61]:
+# In[45]:
+
+
+Ctrl_across_conditions
+
+
+# In[49]:
 
 
 fig, s = sequentialPlot(Ctrl_across_conditions, color = False)
 # fig, s = sequentialPlot(Exp_across_conditions, color = ['royalblue'])
 
-fig
+# fig
 
 
-# In[58]:
+# In[50]:
 
 
-fname = 'Orco_Forward_ctrl'
-fig.savefig("C:/Users/tumkayat/Desktop/Thesis/Figures/Chapter2/" + fname + ".pdf",dpi=1000,bbox_inches='tight')
-s.to_csv("C:/Users/tumkayat/Desktop/Thesis/Figures/Chapter2/" + fname + ".csv")
+fname = 'Gr66a_ctrl'
+fig.savefig("/Users/Tayfun/Desktop/Codes/DATA/Gr66a/" + fname + ".pdf",dpi=1000,bbox_inches='tight')
+s.to_csv("/Users/Tayfun/Desktop/Codes/DATA/Gr66a/" + fname + ".csv")
 
 
-# In[62]:
+# In[51]:
 
 
-s ## wtf is sample size so big
-
-
-
-
+s
 
 
 # ## Contrast of the means across 12-steps
 
-# In[60]:
+# In[68]:
 
 
-def ContrastofSequence(df_ctrl,df_exp):
+def ContrastofSequence(df_ctrl, df_exp):
     contrast_means = []
     contrast_CI_LB = []
     contrast_CI_UB = []
     
-    for i in range(len(df1)):
-        mean_ctrl = df_ctrl['Means'][i]
-        mean_exp = df_exp['Means'][i]
+    for i in range(len(df_ctrl)):
+        mean_ctrl = df_ctrl['Mean'][i]
+        mean_exp = df_exp['Mean'][i]
         
         N_ctrl = df_ctrl['Sample_size'][i]
         N_exp = df_exp['Sample_size'][i]
@@ -2391,7 +2394,7 @@ def ContrastofSequence(df_ctrl,df_exp):
         
         mean_diff = mean_exp - mean_ctrl
         
-        moe = 1.96*sqrt(((STD_ctrl**2)/N_ctrl)+((STD_exp**2)/N_exp))
+        moe = 1.96*np.sqrt(((STD_ctrl**2)/N_ctrl)+((STD_exp**2)/N_exp))
         CI_LB = mean_diff - moe
         CI_UB = mean_diff + moe
         
@@ -2421,18 +2424,43 @@ def ContrastofSequence(df_ctrl,df_exp):
         x1 = x1 + 1
 
     ax1.set_ylim(-1,1)
-    ax1.set_ylabel('weighted-TSALE')
+    ax1.set_ylabel('delta delta wTSALE')
     ax1.set_xticks(np.arange(0,len(condlist)*2+1))
     xlabel = []
     for c in condlist:
         xlabel.append(c + '_P01')
         xlabel.append(c + '_P10')
     ax1.set_xticklabels(xlabel,rotation=45)
-    ax1.legend(custom_lines, legend_labels,bbox_to_anchor=(1, 1))
+#     ax1.legend(custom_lines, legend_labels,bbox_to_anchor=(1, 1))
 
     sns.despine()
+    stats_table = {'Steps':xlabel, 'Means':contrast_means, 'CI_LB':contrast_CI_LB, 'CI_UB':contrast_CI_UB}
+    stats_table_df = pd.DataFrame.from_dict(stats_table)
 
-    return fig1
+    return fig1, stats_table_df
+
+
+# In[69]:
+
+
+df_ctrl = pd.read_csv("/Users/Tayfun/Desktop/Codes/DATA/Gr66a/Gr66a_ctrl.csv")
+df_exp = pd.read_csv("/Users/Tayfun/Desktop/Codes/DATA/Gr66a/Gr66a_exp.csv")
+
+fig, c = ContrastofSequence(df_ctrl, df_exp)
+
+
+# In[66]:
+
+
+c
+
+
+# In[70]:
+
+
+fname = 'Gr66a_contrast'
+fig.savefig("/Users/Tayfun/Desktop/Codes/DATA/Gr66a/" + fname + ".pdf",dpi=1000,bbox_inches='tight')
+s.to_csv("/Users/Tayfun/Desktop/Codes/DATA/Gr66a/" + fname + ".csv")
 
 
 # ## Combine SVG images of all metrics in one
